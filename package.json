@@ -1,0 +1,39 @@
+{
+  "name": "anatomed-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANATOMED MCP App connector — renders an interactive, region-isolated 3D anatomy widget inline in Claude.",
+  "scripts": {
+    "build:widget": "vite build",
+    "build": "npm run build:widget",
+    "dev:server": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "preview:widget": "vite build && tsx src/server.ts",
+    "upload:assets": "tsx scripts/upload-assets.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^0.1.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "express": "^5.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@react-three/drei": "^10.4.0",
+    "@react-three/fiber": "^9.1.2",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.169.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.1.0"
+  }
+}

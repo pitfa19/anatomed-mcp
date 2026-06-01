@@ -1,0 +1,241 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --surface: #f7f7f8;
+  --surface-2: #efeff1;
+  --accent: #2563eb;
+}
+.am-root.am-dark {
+  --bg: #1b1b1f;
+  --fg: #e8e8ea;
+  --muted: #9aa0a6;
+  --border: #34343a;
+  --surface: #232329;
+  --surface-2: #2b2b32;
+  --accent: #6ea8fe;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.am-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 360px;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.am-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.am-title {
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+.am-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.am-canvas-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.am-canvas-wrap > div:first-child {
+  /* r3f Canvas wrapper */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.am-loading {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--surface);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  pointer-events: none;
+}
+.am-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 100%;
+  color: var(--muted);
+  font-size: 0.85rem;
+  position: static;
+  transform: none;
+  background: transparent;
+  border: 0;
+}
+.am-error {
+  color: #b91c1c;
+}
+.am-dark .am-error {
+  color: #fca5a5;
+}
+.am-error-detail {
+  font-size: 0.7rem;
+  color: var(--muted);
+  max-width: 80%;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* Legend */
+.am-legend {
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.am-legend-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.am-legend-title {
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.am-muted {
+  color: var(--muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.am-legend-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+.am-btn {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.am-btn:hover {
+  background: var(--surface-2);
+}
+
+.am-legend-body {
+  padding: 0.25rem 0.4rem 0.5rem;
+}
+.am-sys-head {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0.35rem 0.35rem 0.15rem;
+}
+.am-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 6px;
+}
+.am-row:hover {
+  background: var(--surface-2);
+}
+.am-row.am-off {
+  opacity: 0.45;
+}
+.am-eye {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 0.1rem 0.15rem;
+}
+.am-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-block;
+}
+.am-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  text-align: left;
+  padding: 0.1rem 0.15rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.am-name:hover .am-name-en {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.am-name-en {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.am-name-lat {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.am-unmatched {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding: 0.3rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}

@@ -125,8 +125,15 @@ const THIN_THRESHOLDS: Record<SystemId, { maxOverMed: number; medOverMin: number
   regions: { maxOverMed: 14, medOverMin: 6 },
 };
 
-/** Tint every mesh of `root` with the system colour (idempotent). */
-export function applyTint(root: THREE.Object3D, tint: string, systemId: SystemId): void {
+/** Tint every mesh of `root` with the system colour (idempotent). Parts whose
+ *  id is in `contextIds` get a translucent material so they read as background
+ *  context rather than the focus structures. */
+export function applyTint(
+  root: THREE.Object3D,
+  tint: string,
+  systemId: SystemId,
+  contextIds: string[] = [],
+): void {
   const color = new THREE.Color(tint);
   root.traverse((o) => {
     const m = o as THREE.Mesh;
@@ -140,6 +147,26 @@ export function applyTint(root: THREE.Object3D, tint: string, systemId: SystemId
     }
     m.userData.__tinted = true;
   });
+
+  for (const id of contextIds) {
+    const node = findPartByName(root, id);
+    if (!node) continue;
+    node.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      if (o.name.includes('-line') || o.name.includes('-lin')) return;
+      if (m.userData.__ctxTinted) return;
+      m.material = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.6,
+        metalness: 0.05,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false,
+      });
+      m.userData.__ctxTinted = true;
+    });
+  }
 }
 
 function thinIfElongated(m: THREE.Mesh, systemId: SystemId): void {

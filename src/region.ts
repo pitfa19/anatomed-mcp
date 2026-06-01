@@ -1,26 +1,46 @@
 import type { PartsCatalog } from './vendor/types';
 import { resolveQueryToParts } from './vendor/resolveParts';
 import { getSystem } from './catalog';
-import { REGION_SCHEMA, type RegionPart, type RegionPayload, type RegionSystemMeta } from './shared';
+import { contextFor } from './neighbors';
+import {
+  REGION_SCHEMA,
+  type RegionDetail,
+  type RegionPart,
+  type RegionPayload,
+  type RegionSystemMeta,
+} from './shared';
 
-/** Hard cap on how many structures one region renders. This enforces the
- *  product rule: we always show a bounded REGION, never the whole model. Even
- *  if a query expands huge, we truncate. */
+/** Hard cap on focus structures. Enforces the product rule: always a bounded
+ *  REGION, never the whole model. */
 export const MAX_REGION_PARTS = 60;
+
+/** Per-detail-level context tuning: how many nearest neighbours to pull per
+ *  focus part, and the total context cap. */
+const DETAIL_TUNING: Record<RegionDetail, { perPart: number; cap: number }> = {
+  isolated: { perPart: 0, cap: 0 },
+  related: { perPart: 6, cap: 14 },
+  regional: { perPart: 14, cap: 30 },
+};
 
 export interface BuildRegionResult {
   payload: RegionPayload;
-  /** Short human summary for the model to read alongside the widget. */
   summary: string;
 }
 
-/** Resolve a list of structure/region queries into a bounded RegionPayload. */
+export interface BuildRegionOptions {
+  title?: string;
+  detail?: RegionDetail;
+}
+
+/** Resolve queries into a bounded RegionPayload, optionally adding surrounding
+ *  context structures (nearest neighbours) at higher detail levels. */
 export function buildRegion(
   catalog: PartsCatalog,
   queries: string[],
   assetBase: string,
-  title?: string,
+  opts: BuildRegionOptions = {},
 ): BuildRegionResult {
+  const detail: RegionDetail = opts.detail ?? 'isolated';
   const parts: RegionPart[] = [];
   const seen = new Set<string>();
   const unmatched: string[] = [];
@@ -56,6 +76,27 @@ export function buildRegion(
     if (truncated) break;
   }
 
+  // Surrounding context (structures the focus parts pass through / near).
+  const focusIds = parts.map((p) => p.id);
+  const tuning = DETAIL_TUNING[detail];
+  let contextCount = 0;
+  if (tuning.perPart > 0 && focusIds.length > 0) {
+    const ctx = contextFor(catalog, focusIds, tuning.perPart, tuning.cap);
+    for (const p of ctx) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      parts.push({
+        id: p.id,
+        name_en: cleanName(p.name_en),
+        name_lat: cleanName(p.name_lat),
+        system: p.system,
+        side: p.side,
+        context: true,
+      });
+      contextCount++;
+    }
+  }
+
   const sysIds = [...new Set(parts.map((p) => p.system))];
   const systems: RegionSystemMeta[] = sysIds.map((id) => {
     const s = getSystem(catalog, id);
@@ -67,7 +108,8 @@ export function buildRegion(
     };
   });
 
-  const resolvedTitle = title?.trim() || deriveTitle(parts, expanded);
+  const focusParts = parts.filter((p) => !p.context);
+  const resolvedTitle = opts.title?.trim() || deriveTitle(focusParts, expanded);
 
   const payload: RegionPayload = {
     schema: REGION_SCHEMA,
@@ -75,47 +117,49 @@ export function buildRegion(
     assetBase,
     parts,
     systems,
+    detail,
     unmatched,
     expanded: expanded.length ? expanded : undefined,
   };
 
-  const summary = buildSummary(payload, truncated);
+  const summary = buildSummary(payload, focusParts.length, contextCount, truncated);
   return { payload, summary };
 }
 
-/** Strip the trailing Blender duplicate suffix (".001") from a display name.
- *  The part id keeps the suffix (it must match the GLB node), only the label
- *  is cleaned — mirrors the web app's quiz `cleanName`. */
+/** Strip the trailing Blender duplicate suffix (".001") from a display name. */
 function cleanName(name: string): string {
   return name.replace(/\.\d{3}$/, '');
 }
 
 function deriveTitle(
-  parts: RegionPart[],
+  focusParts: RegionPart[],
   expanded: NonNullable<RegionPayload['expanded']>,
 ): string {
-  if (expanded.length === 1 && parts.length > 1) return expanded[0]!.label;
-  if (parts.length === 0) return 'Anatomy';
-  const names = [...new Set(parts.map((p) => p.name_en))];
+  if (expanded.length === 1 && focusParts.length > 1) return expanded[0]!.label;
+  if (focusParts.length === 0) return 'Anatomy';
+  const names = [...new Set(focusParts.map((p) => p.name_en))];
   if (names.length <= 3) return names.join(', ');
   return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
 }
 
-function buildSummary(payload: RegionPayload, truncated: boolean): string {
-  const names = [...new Set(payload.parts.map((p) => p.name_en))];
+function buildSummary(
+  payload: RegionPayload,
+  focusCount: number,
+  contextCount: number,
+  truncated: boolean,
+): string {
+  const focusNames = [...new Set(payload.parts.filter((p) => !p.context).map((p) => p.name_en))];
   const lines: string[] = [];
-  if (payload.parts.length === 0) {
+  if (focusCount === 0) {
     lines.push('No matching anatomical structures were found.');
   } else {
-    lines.push(
-      `Rendering an interactive 3D view of ${payload.parts.length} structure(s): ${names.join(', ')}.`,
-    );
+    lines.push(`Rendering an interactive 3D view of ${focusNames.join(', ')}.`);
   }
-  if (payload.unmatched.length) {
-    lines.push(`Not found: ${payload.unmatched.join(', ')}.`);
+  if (contextCount > 0) {
+    const ctxNames = [...new Set(payload.parts.filter((p) => p.context).map((p) => p.name_en))];
+    lines.push(`Surrounding context (${payload.detail}, shown translucent): ${ctxNames.join(', ')}.`);
   }
-  if (truncated) {
-    lines.push(`Capped at ${MAX_REGION_PARTS} structures to keep the region focused.`);
-  }
+  if (payload.unmatched.length) lines.push(`Not found: ${payload.unmatched.join(', ')}.`);
+  if (truncated) lines.push(`Focus capped at ${MAX_REGION_PARTS} structures.`);
   return lines.join(' ');
 }

@@ -98,9 +98,6 @@ function Root() {
           <ErrorBoundary>
             <RegionViewer payload={payload} onSelect={onSelect} />
           </ErrorBoundary>
-          {payload.unmatched.length > 0 && (
-            <div className="am-unmatched">Not found: {payload.unmatched.join(', ')}</div>
-          )}
         </>
       ) : (
         <div className="am-loading am-center">Waiting for anatomy data…</div>

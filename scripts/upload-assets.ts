@@ -51,7 +51,7 @@ async function upload(path: string, body: Buffer, contentType: string): Promise<
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
     headers: { ...authHeaders, 'Content-Type': contentType, 'x-upsert': 'true', 'cache-control': '86400' },
-    body,
+    body: new Uint8Array(body),
   });
   if (!res.ok) {
     const t = await res.text();

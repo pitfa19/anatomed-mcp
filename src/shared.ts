@@ -9,7 +9,13 @@ export interface RegionPart {
   name_lat: string;
   system: SystemId;
   side?: 'l' | 'r';
+  /** True for surrounding-context structures auto-added at higher detail
+   *  levels (rendered translucent, marked "ctx" in the legend). */
+  context?: boolean;
 }
+
+/** How much surrounding context the view includes. */
+export type RegionDetail = 'isolated' | 'related' | 'regional';
 
 export interface RegionSystemMeta {
   id: SystemId;
@@ -33,6 +39,8 @@ export interface RegionPayload {
   parts: RegionPart[];
   /** Only the systems present in `parts`, with tint + glb path. */
   systems: RegionSystemMeta[];
+  /** How much context was included. */
+  detail: RegionDetail;
   /** Queries that resolved to nothing (surfaced to the user). */
   unmatched: string[];
   /** Group aliases that expanded (e.g. "cervical spine" → 7 vertebrae). */

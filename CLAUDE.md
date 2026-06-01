@@ -46,9 +46,12 @@ without the MCP handshake (used for Playwright pixel verification).
   widget + legend toggle, MCP wiring + CSP. Smoke test green; Playwright confirmed
   the 3D renders (cervical spine: bone-tinted, fitted) and the legend toggles
   (show/hide all + per-part), and multi-system (Femur+Femoral artery → two tints).
-- NEXT / to validate on the real host: add the connector in Claude and confirm CSP
-  + `structuredContent` delivery in the live iframe (the one thing not reproducible
-  outside Claude). Stable deploy (e.g. Vercel) instead of a tunnel for a lasting URL.
+- VALIDATED ON REAL HOST (2026-06-01): added as a custom connector via a Cloudflare
+  quick tunnel and confirmed the widget renders 3D inline in Claude — so Claude DOES
+  honor `_meta.ui.csp` + forward `structuredContent`. Current hosting = laptop Node
+  server + `cloudflared` quick tunnel (ephemeral, rotating URL).
+- NEXT: stable deploy for a lasting URL (Vercel function — adapt the Express app to a
+  handler, build widget in CI, set `ASSET_BASE_URL` env; CSP stays on Supabase).
 - Not in v1 (intentional): neighbours/cross-system stepping, 3D click-to-select
   (legend click already sends a follow-up message to Claude), labels/landmarks.
 

@@ -9,8 +9,14 @@ inline in Claude (web + desktop). Sibling of `anatomed-web`; reuses its viewer c
   that returns a bounded set of anatomical structures as `structuredContent`, plus a
   `ui://anatomed/region-viewer` **MCP App resource** (the single-file 3D widget HTML).
 - Claude renders the widget in a sandboxed iframe. The widget loads only the needed
-  GLBs from Supabase and isolates just the requested parts, with a **legend that toggles
-  each structure**. **Never renders a whole system** — capped at `MAX_REGION_PARTS` (`src/region.ts`).
+  GLBs from Supabase and isolates just the requested parts, with a compact **floating
+  legend that toggles each structure**. **Never renders a whole system** — capped at
+  `MAX_REGION_PARTS` (`src/region.ts`).
+- Tool param **`detail`** = `isolated` (default) | `related` | `regional` controls how much
+  surrounding context to add. `related`/`regional` append the nearest neighbour structures
+  (from `parts-neighbors.json`, by 3D AABB distance — "what a nerve passes through/around"),
+  rendered translucent + marked `ctx` in the legend. Grounded in `docs/anatomy-study-research.md`
+  (regional approach, neurovascular bundles, cognitive-load bounding).
 - Built on `@modelcontextprotocol/ext-apps` (MCP Apps, shipped 2026-01-26).
 
 ## Key facts / invariants
@@ -50,10 +56,17 @@ without the MCP handshake (used for Playwright pixel verification).
   quick tunnel and confirmed the widget renders 3D inline in Claude — so Claude DOES
   honor `_meta.ui.csp` + forward `structuredContent`. Current hosting = laptop Node
   server + `cloudflared` quick tunnel (ephemeral, rotating URL).
+- Round 2 (2026-06-01): fixed camera re-fit on resize (model vanished on resize),
+  made the legend a compact floating/collapsible overlay (bottom-sheet + collapsed-by-
+  default on mobile), reworked the stage layout (canvas fills, neutral backdrop, safe-area,
+  clamped height), and added the `detail` verbosity levels (context via neighbours).
+  All re-verified via Playwright pixel-readback (resize survives, legend ~20% overlay,
+  mobile pill, `related` adds translucent context).
 - NEXT: stable deploy for a lasting URL (Vercel function — adapt the Express app to a
   handler, build widget in CI, set `ASSET_BASE_URL` env; CSP stays on Supabase).
-- Not in v1 (intentional): neighbours/cross-system stepping, 3D click-to-select
-  (legend click already sends a follow-up message to Claude), labels/landmarks.
+- Not yet (intentional): 3D click-to-select (legend click already messages Claude),
+  labels/landmarks, fade-vs-hide as distinct states, active-recall/quiz mode (all
+  flagged as future ideas in the research doc).
 
 ## Gotchas
 

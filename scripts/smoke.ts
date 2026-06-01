@@ -9,12 +9,14 @@ const client = new Client({ name: 'smoke', version: '0.0.0' }, { capabilities: {
 await client.connect(new StreamableHTTPClientTransport(url));
 
 const tools = await client.listTools();
-console.log('TOOLS:', JSON.stringify(tools.tools.map((t) => ({ name: t.name, _meta: (t as any)._meta })), null, 2));
+const tool: any = tools.tools[0];
+console.log('TOOL:', tool.name, '| params:', Object.keys(tool.inputSchema.properties), '| detail enum:', tool.inputSchema.properties.detail?.enum);
 
 const region = process.argv[2] ?? 'cervical spine';
+const detail = process.env.DETAIL ?? 'isolated';
 const res: any = await client.callTool({
   name: 'show_anatomy_region',
-  arguments: { parts: [region] },
+  arguments: { parts: [region], detail },
 });
 console.log('\nCALL result _meta:', JSON.stringify(res._meta));
 console.log('summary:', res.content?.[0]?.text);

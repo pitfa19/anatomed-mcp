@@ -68,6 +68,12 @@ without the MCP handshake (used for Playwright pixel verification).
   labels/landmarks, fade-vs-hide as distinct states, active-recall/quiz mode (all
   flagged as future ideas in the research doc).
 
+## TODO (later — agreed with user, not yet done)
+
+- [ ] **Move-around / pan interaction.** Let the user reposition the model — e.g. **right-click drag to pan**. `OrbitControls` currently has `enablePan={false}` (RegionViewer.tsx), so the model can only rotate/zoom, not be dragged around. Plan: left-drag = rotate, **right-drag = pan**, wheel/pinch = zoom, two-finger drag = pan on touch; add a recenter/"fit" button to undo a pan (the `Fit` component already knows how to refit).
+- [ ] **More mobile polish.** Bottom-sheet legend ergonomics + larger touch targets; ensure rotate/zoom/pan gestures don't fight chat scroll; verify safe-area insets on a real device.
+- [ ] (from research, `docs/anatomy-study-research.md`) a "bundle" default detail level + an active-recall / quiz mode (hide names, "what does this supply?") — both need a functional-relationship dataset beyond the current spatial `parts-neighbors.json`.
+
 ## Gotchas
 
 - Server (`npm run start`) is **not** watch mode — restart after editing `src/**`. Widget changes need `npm run build:widget`.

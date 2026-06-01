@@ -71,3 +71,10 @@ For a stable URL, deploy the server to a host (e.g. Vercel) instead of a tunnel.
 | `scripts/smoke.ts` | Headless MCP protocol test |
 | `assets/parts-catalog.json` | Committed catalog (resolution source) |
 | `assets/glb/*.glb` | Gitignored; sourced from anatomed-web, hosted on Supabase |
+
+## Roadmap / TODO
+
+- [ ] **Move-around / pan** — right-click drag to pan the model (currently `enablePan` is off; rotate + zoom only). Add a recenter button.
+- [ ] **More mobile polish** — legend bottom-sheet ergonomics, touch targets, gesture-vs-scroll.
+- [ ] **Stable deploy** — move off the dev tunnel to a Vercel function for a permanent connector URL.
+- [ ] Research-backed (see `docs/anatomy-study-research.md`): a "bundle" default detail level + an active-recall/quiz mode (needs functional-relationship data beyond spatial neighbours).

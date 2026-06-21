@@ -9,3 +9,4 @@ dist/
 # Large binary model assets — sourced from anatomed-web, hosted on Supabase.
 # Not committed (keeps the repo light); fetched/uploaded via scripts.
 assets/glb/
+.vercel

@@ -71,8 +71,15 @@ without the MCP handshake (used for Playwright pixel verification).
   frame, so the model can never be dragged off-screen) plus a **Recenter button**
   (bumps a nonce that re-keys `Fit` → re-frames). Verified with real input over a CDP
   debug-*pipe* (the sandbox kills debug-*port* chromium; pipe avoids the listening socket).
-- NEXT: stable deploy for a lasting URL (Vercel function — adapt the Express app to a
-  handler, build widget in CI, set `ASSET_BASE_URL` env; CSP stays on Supabase).
+- DEPLOYED (2026-06-22): live on **Vercel** at `https://anatomed-mcp.vercel.app`
+  (MCP endpoint `POST /mcp`). The Express app is served as one serverless function
+  (`api/index.ts` → `createApp()` from `src/app.ts`); `src/server.ts` stays the local
+  listener. `vercel.json` builds the widget, serves a static landing page from
+  `public/`, catch-all-rewrites every path to the function, and `includeFiles` bundles
+  `dist/index.html` + `assets/*.json` into the Lambda. `ASSET_BASE_URL` defaults to the
+  public Supabase bucket (no env setup). Redeploy: `npx vercel deploy --prod`
+  (project `anatomed-mcp`, team "pitfa19's projects"). Verified on prod: healthz,
+  widget-preview, full MCP handshake, and `related` context (neighbours).
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).
@@ -83,7 +90,9 @@ without the MCP handshake (used for Playwright pixel verification).
   wheel = zoom, one-finger = rotate / two-finger = pinch-zoom + pan (`mouseButtons`/`touches` on
   OrbitControls). A `PanClamp` component bounds the orbit target to the model AABB so it can't be
   dragged off-screen, and a Recenter button re-frames via `Fit`.
-- [ ] **More mobile polish.** Bottom-sheet legend ergonomics + larger touch targets; ensure rotate/zoom/pan gestures don't fight chat scroll; verify safe-area insets on a real device.
+- [x] **More mobile polish.** DONE: finger-sized legend rows + buttons, `touch-action:none` on the
+  canvas so 3D gestures don't scroll the chat (legend keeps `pan-y`), safe-area insets, bottom-sheet
+  grab-handle, 40px Recenter. Still TODO: verify safe-area + real touch gestures on a physical device.
 - [ ] (from research, `docs/anatomy-study-research.md`) a "bundle" default detail level + an active-recall / quiz mode (hide names, "what does this supply?") — both need a functional-relationship dataset beyond the current spatial `parts-neighbors.json`.
 
 ## Gotchas
@@ -91,3 +100,6 @@ without the MCP handshake (used for Playwright pixel verification).
 - Server (`npm run start`) is **not** watch mode — restart after editing `src/**`. Widget changes need `npm run build:widget`.
 - Catalog granularity: no single "Heart"/"Sternum" mesh (decomposed) — such queries land in `unmatched`. Whole bones / major vessels / nerves / named regions resolve well.
 - Part `id` keeps its raw `.001` suffix (must match the GLB node via `sanitizeNodeName`); only the **display** name is cleaned (`cleanName` in `region.ts`).
+- **Vercel/ESM**: relative runtime imports in the server graph (`src/**`, `api/**`) MUST carry `.js`
+  extensions — Vercel's Node runtime transpiles per-file (no bundling), so Node's native ESM resolver
+  needs them. Extensionless imports work locally (tsx/vite) but crash on Vercel with `ERR_MODULE_NOT_FOUND`.

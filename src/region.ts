@@ -1,14 +1,14 @@
 import type { PartsCatalog } from './vendor/types';
-import { resolveQueryToParts } from './vendor/resolveParts';
-import { getSystem } from './catalog';
-import { contextFor } from './neighbors';
+import { resolveQueryToParts } from './vendor/resolveParts.js';
+import { getSystem } from './catalog.js';
+import { contextFor } from './neighbors.js';
 import {
   REGION_SCHEMA,
   type RegionDetail,
   type RegionPart,
   type RegionPayload,
   type RegionSystemMeta,
-} from './shared';
+} from './shared.js';
 
 /** Hard cap on focus structures. Enforces the product rule: always a bounded
  *  REGION, never the whole model. */

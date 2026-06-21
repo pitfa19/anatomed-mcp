@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import type { PartsCatalog, SystemId, SystemMeta } from './vendor/types';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const CATALOG_PATH = resolve(here, '../assets/parts-catalog.json');
+// Resolved from CWD: project root locally, the Lambda task root on Vercel.
+const CATALOG_PATH = resolve(process.cwd(), 'assets/parts-catalog.json');
 
 let cache: PartsCatalog | null = null;
 

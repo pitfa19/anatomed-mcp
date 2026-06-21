@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import type { Part, PartsCatalog, SystemId } from './vendor/types';
-import { getPartIndex } from './catalog';
+import { getPartIndex } from './catalog.js';
 
 interface Neighbor {
   id: string;
@@ -11,8 +10,8 @@ interface Neighbor {
 }
 type NeighborMap = Record<string, Neighbor[]>;
 
-const here = dirname(fileURLToPath(import.meta.url));
-const NEIGHBORS_PATH = resolve(here, '../assets/parts-neighbors.json');
+// Resolved from CWD: project root locally, the Lambda task root on Vercel.
+const NEIGHBORS_PATH = resolve(process.cwd(), 'assets/parts-neighbors.json');
 
 let cache: NeighborMap | null = null;
 

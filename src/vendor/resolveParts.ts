@@ -1,7 +1,7 @@
 // Vendored from anatomed-web/src/lib/viewer/resolveParts.ts.
 // Group-alias + fuzzy resolution. Keep in sync with upstream when the group
 // predicates change. Only the import lines differ from the original.
-import { fuzzyMatchScored } from './fuzzy';
+import { fuzzyMatchScored } from './fuzzy.js';
 import type { Part, PartsCatalog } from './types';
 
 interface CatalogIndex {

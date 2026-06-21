@@ -62,15 +62,27 @@ without the MCP handshake (used for Playwright pixel verification).
   clamped height), and added the `detail` verbosity levels (context via neighbours).
   All re-verified via Playwright pixel-readback (resize survives, legend ~20% overlay,
   mobile pill, `related` adds translucent context).
+- Round 3 (2026-06-22): added **hover-to-name** (raycast on pointer move → follow-cursor
+  tooltip with the structure's name; maps the hit mesh back to its part via
+  `sanitizeNodeName` ancestor walk, visible-only), a **clean legend open/close animation**
+  (grid-rows `1fr↔0fr` + opacity; body kept mounted with its own scroll cap), and
+  **right-click pan** (OrbitControls `enablePan` + LEFT=rotate/RIGHT=pan/two-finger=pan)
+  with a **pan clamp** (`PanClamp` keeps the orbit target inside the model's AABB every
+  frame, so the model can never be dragged off-screen) plus a **Recenter button**
+  (bumps a nonce that re-keys `Fit` → re-frames). Verified with real input over a CDP
+  debug-*pipe* (the sandbox kills debug-*port* chromium; pipe avoids the listening socket).
 - NEXT: stable deploy for a lasting URL (Vercel function — adapt the Express app to a
   handler, build widget in CI, set `ASSET_BASE_URL` env; CSP stays on Supabase).
-- Not yet (intentional): 3D click-to-select (legend click already messages Claude),
-  labels/landmarks, fade-vs-hide as distinct states, active-recall/quiz mode (all
-  flagged as future ideas in the research doc).
+- Not yet (intentional): 3D click-to-select (legend click already messages Claude;
+  hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
+  states, active-recall/quiz mode (all flagged as future ideas in the research doc).
 
 ## TODO (later — agreed with user, not yet done)
 
-- [ ] **Move-around / pan interaction.** Let the user reposition the model — e.g. **right-click drag to pan**. `OrbitControls` currently has `enablePan={false}` (RegionViewer.tsx), so the model can only rotate/zoom, not be dragged around. Plan: left-drag = rotate, **right-drag = pan**, wheel/pinch = zoom, two-finger drag = pan on touch; add a recenter/"fit" button to undo a pan (the `Fit` component already knows how to refit).
+- [x] **Move-around / pan interaction.** DONE (Round 3): left-drag = rotate, right-drag = pan,
+  wheel = zoom, one-finger = rotate / two-finger = pinch-zoom + pan (`mouseButtons`/`touches` on
+  OrbitControls). A `PanClamp` component bounds the orbit target to the model AABB so it can't be
+  dragged off-screen, and a Recenter button re-frames via `Fit`.
 - [ ] **More mobile polish.** Bottom-sheet legend ergonomics + larger touch targets; ensure rotate/zoom/pan gestures don't fight chat scroll; verify safe-area insets on a real device.
 - [ ] (from research, `docs/anatomy-study-research.md`) a "bundle" default detail level + an active-recall / quiz mode (hide names, "what does this supply?") — both need a functional-relationship dataset beyond the current spatial `parts-neighbors.json`.
 

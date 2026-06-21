@@ -100,6 +100,25 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 }
 .am-legend.am-collapsed { width: auto; }
 
+/* Collapse/expand: animate the body's height (grid-rows 1fr<->0fr) + fade. */
+.am-legend-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: 0;
+  opacity: 1;
+  transition: grid-template-rows 0.24s ease, opacity 0.2s ease;
+}
+.am-legend.am-collapsed .am-legend-collapse {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.am-legend-collapse-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .am-legend-head {
   display: flex;
   align-items: center;
@@ -133,7 +152,7 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 }
 .am-btn:hover { background: var(--surface-2); }
 
-.am-legend-body { overflow-y: auto; padding: 0 0.3rem 0.4rem; }
+.am-legend-body { max-height: 46vh; overflow-y: auto; padding: 0 0.3rem 0.4rem; }
 .am-sys-head {
   font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--muted); padding: 0.3rem 0.35rem 0.12rem;
@@ -157,6 +176,50 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 .am-ctx-tag {
   font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 0.2rem; flex: 0 0 auto;
+}
+
+/* Recenter / re-fit button (undoes a pan or zoom). */
+.am-recenter {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--fg);
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+.am-recenter:hover { background: var(--surface-2); }
+
+/* Follow-cursor label for the hovered structure. */
+.am-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  transform: translate(14px, 8px);
+  max-width: 70%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.12rem 0.45rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
 .am-unmatched {
@@ -186,7 +249,8 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     max-height: 56%;
   }
   .am-legend:not(.am-collapsed) { left: 0.5rem; right: 0.5rem; }
+  .am-legend-body { max-height: 40vh; }
   .am-row { padding: 0.18rem 0.3rem; }
   .am-name-en { font-size: 0.82rem; }
-  .am-unmatched { bottom: auto; top: 0.5rem; left: 0.5rem; max-width: 60%; }
+  .am-unmatched { bottom: auto; top: 0.5rem; left: 2.7rem; max-width: 55%; }
 }

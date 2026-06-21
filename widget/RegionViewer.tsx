@@ -1,4 +1,5 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera, useGLTF } from '@react-three/drei';
 import type { RegionPart, RegionPayload, RegionSystemMeta } from '../src/shared';
@@ -6,6 +7,7 @@ import {
   applyTint,
   computeVisibleUnionBox,
   fitOrthoToBox,
+  sanitizeNodeName,
   setVisibleParts,
 } from './lib/three-helpers';
 
@@ -67,8 +69,30 @@ export default function RegionViewer({ payload, onSelect }: Props) {
   const fitKey = useMemo(() => [...visible].sort().join('|'), [visible]);
   const baseUrl = payload.assetBase.replace(/\/+$/, '');
 
+  // Map a GLB node name back to its part, for hover-to-name. Keyed by the
+  // sanitized node name (how three exposes it on the mesh / its ancestors).
+  const nameByNode = useMemo(() => {
+    const m = new Map<string, { id: string; name: string }>();
+    for (const p of payload.parts) m.set(sanitizeNodeName(p.id), { id: p.id, name: p.name_en });
+    return m;
+  }, [payload.parts]);
+
+  const [hoverName, setHoverName] = useState<string | null>(null);
+  const [pointerPos, setPointerPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Bumping this re-keys <Fit>, which re-frames the model — undoing any pan/zoom.
+  const [refitNonce, setRefitNonce] = useState(0);
+  const recenter = useCallback(() => setRefitNonce((n) => n + 1), []);
+
   return (
-    <div className="am-stage">
+    <div
+      className="am-stage"
+      onPointerMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setPointerPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+      }}
+      onPointerLeave={() => setPointerPos(null)}
+    >
       <Canvas
         className="am-canvas"
         dpr={[1, 2]}
@@ -83,10 +107,18 @@ export default function RegionViewer({ payload, onSelect }: Props) {
           makeDefault
           enableDamping
           enableRotate
-          enablePan={false}
+          enablePan
           enableZoom
           minZoom={0.3}
           maxZoom={16}
+          // Left-drag rotates, right-drag pans, wheel zooms. On touch: one
+          // finger rotates, two fingers pinch-zoom + pan.
+          mouseButtons={{
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN,
+          }}
+          touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
         />
         <Suspense fallback={null}>
           {groups.map((g) => (
@@ -101,10 +133,22 @@ export default function RegionViewer({ payload, onSelect }: Props) {
             />
           ))}
         </Suspense>
-        <Fit fitKey={fitKey} ready={ready} />
+        <Fit fitKey={`${fitKey}#${refitNonce}`} ready={ready} />
+        <PanClamp ready={ready} />
+        <Hoverer nameByNode={nameByNode} visible={visible} onHover={setHoverName} />
       </Canvas>
 
       {!ready && <div className="am-loading">Loading 3D…</div>}
+
+      <button className="am-recenter" onClick={recenter} title="Recenter view" aria-label="Recenter view">
+        <RecenterIcon />
+      </button>
+
+      {hoverName && pointerPos && (
+        <div className="am-tooltip" style={{ left: pointerPos.x, top: pointerPos.y }}>
+          {hoverName}
+        </div>
+      )}
 
       <Legend
         groups={groups}
@@ -181,6 +225,78 @@ function Fit({ fitKey, ready }: { fitKey: string; ready: boolean }) {
   return null;
 }
 
+/** Keeps panning bounded: clamps the orbit target to the model's bounding box
+ *  every frame, so the structure can never be dragged off-screen. Camera follows
+ *  the clamped target (offset preserved) so the view direction is unchanged. */
+function PanClamp({ ready }: { ready: boolean }) {
+  const { camera, scene, controls } = useThree();
+  useFrame(() => {
+    if (!ready) return;
+    const c = controls as { target?: THREE.Vector3; update?: () => void } | null;
+    const target = c?.target;
+    if (!target) return;
+    const box = computeVisibleUnionBox([scene]);
+    if (box.isEmpty()) return;
+    const cx = THREE.MathUtils.clamp(target.x, box.min.x, box.max.x);
+    const cy = THREE.MathUtils.clamp(target.y, box.min.y, box.max.y);
+    const cz = THREE.MathUtils.clamp(target.z, box.min.z, box.max.z);
+    if (cx === target.x && cy === target.y && cz === target.z) return;
+    camera.position.x += cx - target.x;
+    camera.position.y += cy - target.y;
+    camera.position.z += cz - target.z;
+    target.set(cx, cy, cz);
+    c.update?.();
+  });
+  return null;
+}
+
+/** Raycasts on pointer move and reports the name of the visible structure under
+ *  the cursor (null when over empty space). Walks up from the hit mesh to the
+ *  owning part node; skips connector/line meshes and hidden parts (so a hidden
+ *  part in front can't mask a visible one behind it). */
+function Hoverer({
+  nameByNode,
+  visible,
+  onHover,
+}: {
+  nameByNode: Map<string, { id: string; name: string }>;
+  visible: Set<string>;
+  onHover: (name: string | null) => void;
+}) {
+  const { raycaster, camera, scene, pointer } = useThree();
+  // Refs so useFrame always sees the latest props without re-subscribing.
+  const mapRef = useRef(nameByNode);
+  mapRef.current = nameByNode;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  const lastName = useRef<string | null>(null);
+
+  useFrame(() => {
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(scene.children, true);
+    let found: string | null = null;
+    for (const h of hits) {
+      const obj = h.object;
+      if (!obj.visible) continue;
+      if (obj.name.includes('-line') || obj.name.includes('-lin')) continue;
+      for (let o: THREE.Object3D | null = obj; o; o = o.parent) {
+        const part = mapRef.current.get(o.name);
+        if (part) {
+          if (visibleRef.current.has(part.id)) found = part.name;
+          break; // this mesh belongs to `part`; stop walking ancestors
+        }
+      }
+      if (found) break;
+    }
+    if (found !== lastName.current) {
+      lastName.current = found;
+      onHover(found);
+    }
+  });
+
+  return null;
+}
+
 interface LegendProps {
   groups: { system: RegionSystemMeta; parts: RegionPart[] }[];
   visible: Set<string>;
@@ -212,8 +328,8 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) 
         <span className="am-muted">{shown}/{total}</span>
       </button>
 
-      {!collapsed && (
-        <>
+      <div className="am-legend-collapse" aria-hidden={collapsed}>
+        <div className="am-legend-collapse-inner">
           <div className="am-legend-actions">
             <button className="am-btn" onClick={() => onSetAll(true)}>Show all</button>
             <button className="am-btn" onClick={() => onSetAll(false)}>Hide all</button>
@@ -245,8 +361,8 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) 
               </div>
             ))}
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -255,6 +371,15 @@ function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg className={`am-chev${open ? ' am-chev-open' : ''}`} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
       <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+function RecenterIcon() {
+  // Crosshair-in-a-frame: "fit / recenter".
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4" />
+      <circle cx="12" cy="12" r="2.5" />
     </svg>
   );
 }

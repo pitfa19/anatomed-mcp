@@ -56,7 +56,9 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     radial-gradient(120% 120% at 50% 30%, color-mix(in srgb, var(--stage-bg) 60%, transparent), var(--stage-bg));
 }
 .am-canvas { position: absolute; inset: 0; }
-.am-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+/* touch-action:none so 3D drag/pinch gestures are captured here (rotate/zoom/pan)
+   instead of scrolling the surrounding chat. The legend list re-enables pan-y. */
+.am-canvas canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
 
 .am-loading {
   position: absolute;
@@ -242,15 +244,45 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   .am-legend {
     top: auto;
     bottom: max(0.5rem, env(safe-area-inset-bottom));
-    right: 0.5rem;
+    right: max(0.5rem, env(safe-area-inset-right));
     left: auto;
     width: auto;
     max-width: calc(100% - 1rem);
-    max-height: 56%;
+    max-height: 60%;
   }
-  .am-legend:not(.am-collapsed) { left: 0.5rem; right: 0.5rem; }
-  .am-legend-body { max-height: 40vh; }
-  .am-row { padding: 0.18rem 0.3rem; }
-  .am-name-en { font-size: 0.82rem; }
-  .am-unmatched { bottom: auto; top: 0.5rem; left: 2.7rem; max-width: 55%; }
+  .am-legend:not(.am-collapsed) {
+    left: max(0.5rem, env(safe-area-inset-left));
+    right: max(0.5rem, env(safe-area-inset-right));
+  }
+  /* Grab-handle so the expanded legend reads as a draggable bottom sheet. */
+  .am-legend:not(.am-collapsed)::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 32px;
+    height: 4px;
+    margin: 6px auto 0;
+    border-radius: 999px;
+    background: var(--border);
+  }
+
+  /* Finger-sized tap targets (~44px rows, bigger buttons). */
+  .am-legend-head { padding: 0.6rem 0.75rem; }
+  .am-legend-actions { padding: 0 0.6rem 0.5rem; gap: 0.5rem; }
+  .am-btn { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+  .am-legend-body { max-height: 42vh; touch-action: pan-y; }
+  .am-row { padding: 0.4rem 0.4rem; gap: 0.5rem; }
+  .am-eye { padding: 0.35rem 0.3rem; }
+  .am-name { padding: 0.35rem 0.1rem; }
+  .am-name-en { font-size: 0.85rem; }
+  .am-swatch { width: 12px; height: 12px; }
+
+  /* Bigger, safe-area-aware recenter button. */
+  .am-recenter {
+    width: 40px;
+    height: 40px;
+    top: max(0.5rem, env(safe-area-inset-top));
+    left: max(0.5rem, env(safe-area-inset-left));
+  }
+
+  .am-unmatched { bottom: auto; top: 0.5rem; left: 3.4rem; max-width: 52%; }
 }

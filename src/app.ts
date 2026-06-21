@@ -58,6 +58,13 @@ function widgetHtml(): string {
   return readFileSync(WIDGET_HTML_PATH, 'utf8');
 }
 
+/** Serialize a value for safe embedding inside an inline <script> element:
+ *  escapes `<` and `>` so a "</script>" inside any string cannot break out
+ *  of the element. JSON.parse reads it back identically. */
+function htmlSafeJson(value: unknown): string {
+  return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e");
+}
+
 const TOOL_DESCRIPTION = [
   'Render an INTERACTIVE, rotatable 3D view of a specific anatomical REGION inline in the chat.',
   'Use this for any spatial / "show me" / "where is" / structure-relationship anatomy question.',
@@ -229,7 +236,7 @@ export function createApp(): express.Express {
     const d = String(req.query.detail ?? 'isolated');
     const detail = d === 'related' || d === 'regional' ? d : 'isolated';
     const { payload } = buildRegion(catalog, queries, ASSET_BASE_URL, { detail });
-    const inject = `<script>window.__ANATOMED_PREVIEW__=${JSON.stringify({ payload, theme })};</script>`;
+    const inject = `<script>window.__ANATOMED_PREVIEW__=${htmlSafeJson({ payload, theme })};</script>`;
     res.type('html').send(widgetHtml().replace('</head>', `${inject}</head>`));
   });
 
@@ -245,7 +252,8 @@ export function createApp(): express.Express {
       await transport.handleRequest(req, res, req.body);
     } catch (err) {
       console.error('[mcp] request error:', err);
-      if (!res.headersSent) res.status(500).json({ error: String(err) });
+      // Don't leak internal error detail to the client; it's logged above.
+      if (!res.headersSent) res.status(500).json({ error: 'internal server error' });
     }
   });
 

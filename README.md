@@ -1,7 +1,7 @@
 # ANATOMED MCP
 
 Interactive, region-isolated **3D anatomy**, rendered **inline in Claude**. Ask for an
-anatomical structure or region and a live, rotatable 3D model appears right in the chat —
+anatomical structure or region and a live, rotatable 3D model appears right in the chat,
 showing only what you asked for, with a legend to toggle each structure on and off.
 
 🔗 **Live connector:** `https://anatomed-mcp.vercel.app/mcp`
@@ -47,7 +47,7 @@ Claude ──resources/read ui://… ──────────▶  serves t
            and draws the legend with per-structure toggles.
 ```
 
-The widget **never renders a whole body system** — always a bounded *region* (capped at
+The widget **never renders a whole body system**: always a bounded *region* (capped at
 `MAX_REGION_PARTS`). The `detail` parameter controls surrounding context:
 `isolated` (default) · `related` (nearest neighbours, translucent) · `regional` (wider context).
 
@@ -75,7 +75,7 @@ Run the headless protocol check with `npx tsx scripts/smoke.ts`.
 
 ## Deploy
 
-Hosted on **Vercel** — every push to `main` auto-deploys. To deploy manually:
+Hosted on **Vercel**. Every push to `main` auto-deploys. To deploy manually:
 
 ```bash
 npx vercel deploy --prod
@@ -96,15 +96,19 @@ model change: `cp .env.example .env`, fill in the Supabase keys, then `npm run u
 
 | Path | What |
 |------|------|
-| `src/app.ts` | Express app — `show_anatomy_region` tool + `ui://` widget resource (CSP) + routes |
+| `src/app.ts` | Express app: `show_anatomy_region` tool + `ui://` widget resource (CSP) + routes |
 | `src/server.ts` | Local dev server (listens on `:3000`) |
 | `api/index.ts` | Vercel serverless entry (serves the same app) |
 | `src/region.ts` | Resolve a query → bounded region payload |
 | `src/catalog.ts`, `src/neighbors.ts` | Parts catalog + nearest-neighbour (context) data |
 | `src/vendor/` | Vendored from anatomed-web (types, fuzzy match, group resolution) |
-| `widget/` | Single-file R3F widget — `RegionViewer` (rotate/zoom/pan/hover) + legend |
+| `widget/` | Single-file R3F widget: `RegionViewer` (rotate/zoom/pan/hover) + legend |
 | `public/index.html` | Static landing page |
 | `assets/parts-catalog.json` | Committed catalog (resolution source) |
 | `assets/glb/*.glb` | Gitignored; hosted on Supabase |
 
 For architecture details and project conventions, see [`CLAUDE.md`](CLAUDE.md).
+
+## License
+
+Released under the [MIT License](LICENSE).

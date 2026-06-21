@@ -2,6 +2,7 @@
   "name": "anatomed-mcp",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "ANATOMED MCP App connector — renders an interactive, region-isolated 3D anatomy widget inline in Claude.",
   "scripts": {

@@ -8,6 +8,13 @@ showing only what you asked for, with a legend to toggle each structure on and o
 
 ![ANATOMED widget showing the bones of the hand with a per-structure legend](docs/preview.png)
 
+### ▶ Watch the demo
+
+[![Demo: add the connector, then ask for the sciatic nerve and its course rendered in 3D](docs/demo-poster.png)](https://uafyfwyyqzunabpuftue.supabase.co/storage/v1/object/public/models/media/demo.mp4)
+
+A 75-second walkthrough: add the custom connector, ask for the sciatic nerve and its
+course, then rotate and explore it in 3D. Click the image to play.
+
 ---
 
 ## Use it in Claude
@@ -112,3 +119,7 @@ For architecture details and project conventions, see [`CLAUDE.md`](CLAUDE.md).
 ## License
 
 Released under the [MIT License](LICENSE).
+
+---
+
+![anatom3D: explore the body, one question at a time](docs/endcard.png)

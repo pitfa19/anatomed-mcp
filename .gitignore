@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.local
+supabasesecret.txt
 *.log
 .DS_Store
 .firecrawl/

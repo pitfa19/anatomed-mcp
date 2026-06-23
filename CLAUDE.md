@@ -80,6 +80,22 @@ without the MCP handshake (used for Playwright pixel verification).
   public Supabase bucket (no env setup). Redeploy: `npx vercel deploy --prod`
   (project `anatomed-mcp`, team "pitfa19's projects"). Verified on prod: healthz,
   widget-preview, full MCP handshake, and `related` context (neighbours).
+- Round 4 (2026-06-23): **mobile fixes.** (1) **Legend now touch-scrolls** — it was
+  rendered inside `.am-stage`, and R3F sets `touch-action:none` on its full-bleed
+  `.am-canvas` wrapper, so Chromium suppressed touch-scroll for the whole stage subtree.
+  Fix: a new `.am-viewport` wraps the stage + legend, and the `<Legend>` now renders as a
+  **sibling of `.am-stage`** (escapes the suppressed subtree), plus `transform:translateZ(0)`
+  on `.am-legend` to give it its own compositing layer over the WebGL canvas. (2) **Steadier
+  3D drag** — `TouchGuard` counts active touch pointers (capture phase) and holds
+  `enableRotate=false` once a gesture has ≥2 fingers until ALL lift, so lifting one finger
+  out of a pinch can't spin the model and a stray 2nd touch can't flip rotate→zoom; the
+  hover-to-name raycast + tooltip + per-move `setPointerPos` are now **gated to fine-pointer
+  devices** (killed the per-pointermove re-render storm that churned OrbitControls during a
+  drag); `mouseButtons`/`touches` hoisted to stable module consts. Mapping unchanged
+  (1 finger rotate / 2 finger pinch-zoom+pan — user confirmed). Verified via the CDP-touch
+  harness: legend body scrolls (195px) once promoted, 1-finger drag rotates. NOTE: the
+  headless SwiftShader compositor can't scroll a *bottom-anchored* layer over the canvas
+  (non-spec quirk), so the mobile bottom-sheet scroll itself needs a real-device check.
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).
@@ -103,3 +119,8 @@ without the MCP handshake (used for Playwright pixel verification).
 - **Vercel/ESM**: relative runtime imports in the server graph (`src/**`, `api/**`) MUST carry `.js`
   extensions — Vercel's Node runtime transpiles per-file (no bundling), so Node's native ESM resolver
   needs them. Extensionless imports work locally (tsx/vite) but crash on Vercel with `ERR_MODULE_NOT_FOUND`.
+- **HTML overlays over the 3D canvas can't touch-scroll if they live inside `.am-stage`.** R3F sets
+  `touch-action:none` on the full-bleed `.am-canvas` wrapper; Chromium then disables touch-scrolling for
+  every element in that stage subtree (a `<div overflow-y:auto touch-action:pan-y>` scrolls as a child of
+  `.am-root` but NOT as a child of `.am-stage`). Any future scrollable overlay must render OUTSIDE
+  `.am-stage` (e.g. in `.am-viewport`) and be promoted to its own layer (`transform:translateZ(0)`).

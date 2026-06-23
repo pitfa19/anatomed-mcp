@@ -17,6 +17,17 @@ interface Props {
   onSelect?: (part: RegionPart) => void;
 }
 
+// Static control mappings, hoisted so they keep a stable identity across
+// renders — otherwise R3F re-applies them to the controls on every re-render.
+// Left-drag rotates, right-drag pans, wheel zooms. On touch: one finger
+// rotates, two fingers pinch-zoom + pan.
+const MOUSE_BUTTONS = {
+  LEFT: THREE.MOUSE.ROTATE,
+  MIDDLE: THREE.MOUSE.DOLLY,
+  RIGHT: THREE.MOUSE.PAN,
+};
+const TOUCHES = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+
 export default function RegionViewer({ payload, onSelect }: Props) {
   const systemsById = useMemo(() => {
     const m = new Map<string, RegionSystemMeta>();
@@ -77,6 +88,12 @@ export default function RegionViewer({ payload, onSelect }: Props) {
     return m;
   }, [payload.parts]);
 
+  // Touch devices have no hover, so the follow-cursor tooltip + per-move
+  // pointer tracking are pointless there — and that per-move setState re-renders
+  // the whole viewer (incl. OrbitControls) during a drag. Skip it on touch.
+  const [coarse] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches,
+  );
   const [hoverName, setHoverName] = useState<string | null>(null);
   const [pointerPos, setPointerPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -85,13 +102,18 @@ export default function RegionViewer({ payload, onSelect }: Props) {
   const recenter = useCallback(() => setRefitNonce((n) => n + 1), []);
 
   return (
+    <div className="am-viewport">
     <div
       className="am-stage"
-      onPointerMove={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        setPointerPos({ x: e.clientX - r.left, y: e.clientY - r.top });
-      }}
-      onPointerLeave={() => setPointerPos(null)}
+      onPointerMove={
+        coarse
+          ? undefined
+          : (e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              setPointerPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+            }
+      }
+      onPointerLeave={coarse ? undefined : () => setPointerPos(null)}
     >
       <Canvas
         className="am-canvas"
@@ -106,19 +128,14 @@ export default function RegionViewer({ payload, onSelect }: Props) {
         <OrbitControls
           makeDefault
           enableDamping
-          enableRotate
           enablePan
           enableZoom
           minZoom={0.3}
           maxZoom={16}
-          // Left-drag rotates, right-drag pans, wheel zooms. On touch: one
-          // finger rotates, two fingers pinch-zoom + pan.
-          mouseButtons={{
-            LEFT: THREE.MOUSE.ROTATE,
-            MIDDLE: THREE.MOUSE.DOLLY,
-            RIGHT: THREE.MOUSE.PAN,
-          }}
-          touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+          // enableRotate is intentionally omitted (defaults true) — TouchGuard
+          // toggles it imperatively to stabilize multi-touch gestures.
+          mouseButtons={MOUSE_BUTTONS}
+          touches={TOUCHES}
         />
         <Suspense fallback={null}>
           {groups.map((g) => (
@@ -135,7 +152,8 @@ export default function RegionViewer({ payload, onSelect }: Props) {
         </Suspense>
         <Fit fitKey={`${fitKey}#${refitNonce}`} ready={ready} />
         <PanClamp ready={ready} />
-        <Hoverer nameByNode={nameByNode} visible={visible} onHover={setHoverName} />
+        <TouchGuard />
+        {!coarse && <Hoverer nameByNode={nameByNode} visible={visible} onHover={setHoverName} />}
       </Canvas>
 
       {!ready && <div className="am-loading">Loading 3D…</div>}
@@ -144,23 +162,27 @@ export default function RegionViewer({ payload, onSelect }: Props) {
         <RecenterIcon />
       </button>
 
-      {hoverName && pointerPos && (
+      {!coarse && hoverName && pointerPos && (
         <div className="am-tooltip" style={{ left: pointerPos.x, top: pointerPos.y }}>
           {hoverName}
         </div>
       )}
 
-      <Legend
-        groups={groups}
-        visible={visible}
-        onToggle={toggle}
-        onSetAll={setAll}
-        onSelect={onSelect}
-      />
-
       {payload.unmatched.length > 0 && (
         <div className="am-unmatched">Not found: {payload.unmatched.join(', ')}</div>
       )}
+    </div>
+
+    {/* Legend lives OUTSIDE .am-stage: the R3F canvas sets touch-action:none on
+        its full-bleed wrapper, and Chromium suppresses touch-scrolling for every
+        element inside that stage subtree. As a sibling of the stage it scrolls. */}
+    <Legend
+      groups={groups}
+      visible={visible}
+      onToggle={toggle}
+      onSetAll={setAll}
+      onSelect={onSelect}
+    />
     </div>
   );
 }
@@ -247,6 +269,44 @@ function PanClamp({ ready }: { ready: boolean }) {
     target.set(cx, cy, cz);
     c.update?.();
   });
+  return null;
+}
+
+/** Stabilizes multi-touch on mobile. OrbitControls switches gesture mode on the
+ *  instantaneous finger count with no hysteresis: a transient 2nd touch flips a
+ *  one-finger rotate into a pinch-zoom, and lifting one finger out of a pinch
+ *  re-bases to rotate (so the model spins on release). This counts active touch
+ *  pointers (capture phase, ahead of OrbitControls) and, once a gesture involves
+ *  2+ fingers, holds enableRotate=false until ALL fingers lift — so a two-finger
+ *  gesture stays pure zoom/pan. A fresh single-finger gesture resets to rotate. */
+function TouchGuard() {
+  const controls = useThree((s) => s.controls) as { enableRotate?: boolean } | null;
+  const domElement = useThree((s) => s.gl.domElement);
+  useEffect(() => {
+    if (!controls) return;
+    const active = new Set<number>();
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      active.add(e.pointerId);
+      // First finger of a fresh gesture: allow rotate. 2nd+ finger: lock it off.
+      controls.enableRotate = active.size < 2;
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      active.delete(e.pointerId);
+      if (active.size === 0) controls.enableRotate = true; // gesture over, re-arm
+    };
+    const opts = { capture: true, passive: true } as const;
+    domElement.addEventListener('pointerdown', down, opts);
+    domElement.addEventListener('pointerup', up, opts);
+    domElement.addEventListener('pointercancel', up, opts);
+    return () => {
+      domElement.removeEventListener('pointerdown', down, opts);
+      domElement.removeEventListener('pointerup', up, opts);
+      domElement.removeEventListener('pointercancel', up, opts);
+      controls.enableRotate = true;
+    };
+  }, [controls, domElement]);
   return null;
 }
 

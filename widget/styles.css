@@ -46,6 +46,17 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 .am-title { font-weight: 650; font-size: 0.9rem; }
 .am-sub { font-size: 0.72rem; color: var(--muted); }
 
+/* Viewport: positioning context for the floating legend. The legend must live
+   OUTSIDE .am-stage — R3F sets touch-action:none on the full-bleed canvas
+   wrapper, and Chromium then blocks touch-scrolling for the whole stage subtree.
+   As a sibling of the stage (inside this viewport) the legend scrolls. */
+.am-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
 /* Stage: canvas fills it; legend floats on top. */
 .am-stage {
   position: relative;
@@ -88,6 +99,10 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   top: 0.5rem;
   right: 0.5rem;
   z-index: 4;
+  /* Promote to its own compositing layer. The 3D canvas is a touch-action:none
+     WebGL layer; without this the compositor folds the legend into that layer's
+     non-fast-scrollable region and touch-drag can't scroll the list. */
+  transform: translateZ(0);
   width: clamp(168px, 42%, 240px);
   max-height: calc(100% - 1rem);
   display: flex;

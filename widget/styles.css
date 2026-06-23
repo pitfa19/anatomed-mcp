@@ -22,7 +22,9 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; height: 100%; width: 100%; }
+/* overscroll-behavior:none stops a gesture inside the widget from chaining out
+   to scroll the surrounding Claude chat (esp. iOS). */
+html, body, #root { margin: 0; height: 100%; width: 100%; overscroll-behavior: none; }
 body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 
 .am-root {
@@ -66,9 +68,11 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   background:
     radial-gradient(120% 120% at 50% 30%, color-mix(in srgb, var(--stage-bg) 60%, transparent), var(--stage-bg));
 }
-.am-canvas { position: absolute; inset: 0; }
+.am-canvas { position: absolute; inset: 0; touch-action: none; overscroll-behavior: none; }
 /* touch-action:none so 3D drag/pinch gestures are captured here (rotate/zoom/pan)
-   instead of scrolling the surrounding chat. The legend list re-enables pan-y. */
+   instead of scrolling the surrounding chat. NOTE: iOS/WKWebView ignores this
+   inside a sandboxed iframe — the real stopper is the non-passive touchmove
+   preventDefault in <CanvasGestureLock>. The legend list re-enables pan-y. */
 .am-canvas canvas { display: block; width: 100% !important; height: 100% !important; touch-action: none; }
 
 .am-loading {
@@ -115,7 +119,10 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
-.am-legend.am-collapsed { width: auto; }
+.am-legend.am-collapsed { width: max-content; }
+/* When collapsed, the (hidden) body's nowrap content would otherwise stretch the
+   legend to full width; zero its width so the pill sizes to just its header. */
+.am-legend.am-collapsed .am-legend-collapse { width: 0; }
 
 /* Collapse/expand: animate the body's height (grid-rows 1fr<->0fr) + fade. */
 .am-legend-collapse {
@@ -169,7 +176,15 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 }
 .am-btn:hover { background: var(--surface-2); }
 
-.am-legend-body { max-height: 46vh; overflow-y: auto; padding: 0 0.3rem 0.4rem; }
+.am-legend-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
+  overscroll-behavior: contain;      /* don't chain to the chat at the ends */
+  touch-action: pan-y;
+  padding: 0 0.3rem 0.4rem;
+}
 .am-sys-head {
   font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--muted); padding: 0.3rem 0.35rem 0.12rem;
@@ -253,45 +268,33 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   padding: 0.25rem 0.5rem;
 }
 
-/* Mobile: legend becomes a bottom sheet; wider tap targets. */
+/* Mobile: legend stays a COMPACT top-right panel (not a bottom sheet).
+   Collapsed = small pill, model fully visible; expanded = a bounded, scrollable
+   list anchored top-right so the model stays visible behind it. */
 @media (max-width: 560px) {
   .am-root { height: clamp(420px, 78vh, 620px); }
   .am-legend {
-    top: auto;
-    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    top: max(0.5rem, env(safe-area-inset-top));
     right: max(0.5rem, env(safe-area-inset-right));
     left: auto;
-    width: auto;
+    bottom: auto;
+    width: min(72vw, 264px);
     max-width: calc(100% - 1rem);
-    max-height: 60%;
-  }
-  .am-legend:not(.am-collapsed) {
-    left: max(0.5rem, env(safe-area-inset-left));
-    right: max(0.5rem, env(safe-area-inset-right));
-  }
-  /* Grab-handle so the expanded legend reads as a draggable bottom sheet. */
-  .am-legend:not(.am-collapsed)::before {
-    content: "";
-    flex: 0 0 auto;
-    width: 32px;
-    height: 4px;
-    margin: 6px auto 0;
-    border-radius: 999px;
-    background: var(--border);
+    /* Bounded so a long list scrolls inside instead of covering the model. */
+    max-height: min(68%, calc(100% - 1rem));
   }
 
   /* Finger-sized tap targets (~44px rows, bigger buttons). */
   .am-legend-head { padding: 0.6rem 0.75rem; }
   .am-legend-actions { padding: 0 0.6rem 0.5rem; gap: 0.5rem; }
   .am-btn { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
-  .am-legend-body { max-height: 42vh; touch-action: pan-y; }
   .am-row { padding: 0.4rem 0.4rem; gap: 0.5rem; }
   .am-eye { padding: 0.35rem 0.3rem; }
   .am-name { padding: 0.35rem 0.1rem; }
   .am-name-en { font-size: 0.85rem; }
   .am-swatch { width: 12px; height: 12px; }
 
-  /* Bigger, safe-area-aware recenter button. */
+  /* Bigger, safe-area-aware recenter button (top-left, opposite the legend). */
   .am-recenter {
     width: 40px;
     height: 40px;
@@ -299,5 +302,11 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     left: max(0.5rem, env(safe-area-inset-left));
   }
 
-  .am-unmatched { bottom: auto; top: 0.5rem; left: 3.4rem; max-width: 52%; }
+  /* Unmatched note moves to bottom-left, clear of the top-row controls. */
+  .am-unmatched {
+    top: auto;
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    left: max(0.5rem, env(safe-area-inset-left));
+    max-width: 60%;
+  }
 }

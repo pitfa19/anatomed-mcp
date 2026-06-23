@@ -152,6 +152,7 @@ export default function RegionViewer({ payload, onSelect }: Props) {
         </Suspense>
         <Fit fitKey={`${fitKey}#${refitNonce}`} ready={ready} />
         <PanClamp ready={ready} />
+        <CanvasGestureLock />
         <TouchGuard />
         {!coarse && <Hoverer nameByNode={nameByNode} visible={visible} onHover={setHoverName} />}
       </Canvas>
@@ -269,6 +270,21 @@ function PanClamp({ ready }: { ready: boolean }) {
     target.set(cx, cy, cz);
     c.update?.();
   });
+  return null;
+}
+
+/** iOS/WKWebView ignores `touch-action:none` inside a sandboxed iframe, so a
+ *  finger-drag on the 3D canvas scrolls the surrounding Claude chat instead of
+ *  rotating. A NON-PASSIVE `touchmove` listener that calls preventDefault claims
+ *  the gesture (OrbitControls reads pointer events, which still fire) and stops
+ *  the chat from scrolling. Scoped to the canvas, so the legend list still scrolls. */
+function CanvasGestureLock() {
+  const el = useThree((s) => s.gl.domElement);
+  useEffect(() => {
+    const stop = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener('touchmove', stop, { passive: false });
+    return () => el.removeEventListener('touchmove', stop);
+  }, [el]);
   return null;
 }
 

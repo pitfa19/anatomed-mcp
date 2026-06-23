@@ -96,6 +96,20 @@ without the MCP handshake (used for Playwright pixel verification).
   harness: legend body scrolls (195px) once promoted, 1-finger drag rotates. NOTE: the
   headless SwiftShader compositor can't scroll a *bottom-anchored* layer over the canvas
   (non-spec quirk), so the mobile bottom-sheet scroll itself needs a real-device check.
+- Round 5 (2026-06-24): **real-device (iPhone/Claude app) round.** User reported Round 4 still
+  broken on a physical iPhone: drag scrolled the chat, legend didn't scroll, bottom sheet
+  unwanted. Root cause of the drag bug: **iOS/WKWebView ignores `touch-action:none` inside a
+  sandboxed iframe**, so finger-drags fell through to the chat scroll (R3F's touch listeners
+  are all *passive* → can't `preventDefault`). Fix: `<CanvasGestureLock>` adds a **non-passive
+  `touchmove` preventDefault** on the canvas (OrbitControls still gets pointer events, so
+  rotate/zoom work; the chat stops scrolling); plus `overscroll-behavior:none` on root/canvas.
+  Legend redesigned from a bottom sheet → **compact top-right pill that expands into a bounded,
+  scrollable corner panel** (model stays visible). Pill width fix: a collapsed legend's hidden
+  `nowrap` body stretched it full-width, so `.am-collapsed .am-legend-collapse{width:0}` sizes
+  the pill to its header. Legend body is now a `flex:1`+`min-height:0` scroll region with
+  `-webkit-overflow-scrolling:touch`. Headless-verified: top-anchored legend scrolls (237px),
+  1-finger drag rotates, compact pill + corner panel render right. The **iframe chat-scroll fix
+  is NOT reproducible headlessly** (iOS-iframe-specific) → confirmed by user on device.
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).
@@ -124,3 +138,11 @@ without the MCP handshake (used for Playwright pixel verification).
   every element in that stage subtree (a `<div overflow-y:auto touch-action:pan-y>` scrolls as a child of
   `.am-root` but NOT as a child of `.am-stage`). Any future scrollable overlay must render OUTSIDE
   `.am-stage` (e.g. in `.am-viewport`) and be promoted to its own layer (`transform:translateZ(0)`).
+- **iOS/WKWebView (Claude app) ignores `touch-action:none` in a sandboxed iframe.** Finger-drag on
+  the canvas scrolls the host chat instead of rotating. The fix is `<CanvasGestureLock>`: a
+  **non-passive** `touchmove` listener on the canvas that calls `preventDefault()` (R3F's own touch
+  listeners are passive, so they can't). This canNOT be reproduced headlessly or in a standalone
+  preview tab — it only manifests inside the app's iframe, so it needs a real-device check.
+- **A collapsed floating panel sized `width:auto` still stretches full-width** if its hidden body has
+  `nowrap` content (that content drives intrinsic width even at `height:0`). Zero the hidden wrapper's
+  width (`.am-collapsed .am-legend-collapse{width:0}`) so the pill sizes to just its header.

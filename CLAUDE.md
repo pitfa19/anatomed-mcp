@@ -118,6 +118,15 @@ without the MCP handshake (used for Playwright pixel verification).
   (glass look preserved). Also `flex:1 1 auto` on `.am-legend-collapse` so the grid track is
   definite and the body gets a real bounded height on iOS. Headless still scrolls (237px); iOS fix
   needs on-device confirmation.
+- Round 7 (2026-06-24): Round 6 STILL didn't scroll on the iPhone. Two changes: (1) **explicit
+  measured pixel `max-height` on the legend body** via a ResizeObserver effect (unconstrain body →
+  read the legend's CSS-clamped height → set `body.maxHeight = legend.clientHeight - head - actions`;
+  observe the VIEWPORT not the legend to avoid a shrink feedback loop; re-measure 300ms post-anim).
+  A definite px height is the most reliable iOS overflow-scroll trigger (flex/grid heights are
+  flaky there). Headless: body=288px, scrollable, swipe→245px. (2) a **temporary on-device
+  diagnostic** — triple-tap the legend header → overlay shows `body ch/sh/scrollable`, the
+  touch-action/backdrop-filter/transform/overflow of every ancestor, the UA, and a live touch
+  counter, so the iPhone can report WHY the list won't scroll. REMOVE the diagnostic once confirmed.
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).

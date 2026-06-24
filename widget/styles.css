@@ -170,6 +170,7 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   color: var(--fg);
   cursor: pointer;
   font: inherit;
+  touch-action: manipulation; /* no double-tap zoom; keeps triple-tap reliable */
 }
 .am-legend-title { font-size: 0.72rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.03em; }
 .am-muted { color: var(--muted); font-weight: 400; font-size: 0.72rem; }

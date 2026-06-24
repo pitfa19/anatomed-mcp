@@ -101,6 +101,9 @@ export default function RegionViewer({ payload, onSelect }: Props) {
   const [refitNonce, setRefitNonce] = useState(0);
   const recenter = useCallback(() => setRefitNonce((n) => n + 1), []);
 
+  // On-device scroll diagnostic (triple-tap the legend header). Temporary.
+  const [debug, setDebug] = useState(false);
+
   return (
     <div className="am-viewport">
     <div
@@ -183,7 +186,10 @@ export default function RegionViewer({ payload, onSelect }: Props) {
       onToggle={toggle}
       onSetAll={setAll}
       onSelect={onSelect}
+      onDebug={() => setDebug((d) => !d)}
     />
+
+    {debug && <DebugOverlay onClose={() => setDebug(false)} />}
     </div>
   );
 }
@@ -379,9 +385,10 @@ interface LegendProps {
   onToggle: (id: string) => void;
   onSetAll: (on: boolean) => void;
   onSelect?: (part: RegionPart) => void;
+  onDebug?: () => void;
 }
 
-function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) {
+function Legend({ groups, visible, onToggle, onSetAll, onSelect, onDebug }: LegendProps) {
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 560,
   );
@@ -391,11 +398,55 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) 
     0,
   );
 
+  // iOS won't reliably scroll a list sized only by flex/grid; give the body an
+  // explicit measured pixel max-height so it's a definite, scrollable box.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || collapsed) return;
+    const legend = body.closest('.am-legend') as HTMLElement | null;
+    const viewport = legend?.parentElement;
+    if (!legend || !viewport) return;
+    const fit = () => {
+      const head = legend.querySelector('.am-legend-head') as HTMLElement | null;
+      const actions = legend.querySelector('.am-legend-actions') as HTMLElement | null;
+      // Unconstrain the body first so the legend reports its true CSS-clamped
+      // max height (don't feed the body's own height back in → shrink loop).
+      body.style.maxHeight = 'none';
+      const avail = legend.clientHeight - (head?.offsetHeight ?? 0) - (actions?.offsetHeight ?? 0) - 6;
+      body.style.maxHeight = avail > 72 ? `${Math.round(avail)}px` : '';
+    };
+    fit();
+    const settle = setTimeout(fit, 300); // re-measure after the collapse animation
+    // Observe the VIEWPORT (not the legend) so our own body mutations don't
+    // re-trigger the observer; this catches resize / orientation changes.
+    const ro = new ResizeObserver(fit);
+    ro.observe(viewport);
+    return () => {
+      clearTimeout(settle);
+      ro.disconnect();
+    };
+  }, [collapsed, groups]);
+
+  // Triple-tap the header to open the on-device scroll diagnostic.
+  const tapsRef = useRef<number[]>([]);
+  const onHeadClick = () => {
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    tapsRef.current = [...tapsRef.current.filter((t) => now - t < 800), now];
+    if (tapsRef.current.length >= 3 && onDebug) {
+      tapsRef.current = [];
+      setCollapsed(false);
+      onDebug();
+      return;
+    }
+    setCollapsed((c) => !c);
+  };
+
   return (
     <div className={`am-legend${collapsed ? ' am-collapsed' : ''}`}>
       <button
         className="am-legend-head"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={onHeadClick}
         aria-expanded={!collapsed}
         title={collapsed ? 'Expand legend' : 'Collapse legend'}
       >
@@ -410,7 +461,7 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) 
             <button className="am-btn" onClick={() => onSetAll(true)}>Show all</button>
             <button className="am-btn" onClick={() => onSetAll(false)}>Hide all</button>
           </div>
-          <div className="am-legend-body">
+          <div className="am-legend-body" ref={bodyRef}>
             {groups.map((g) => (
               <div key={g.system.id} className="am-sys">
                 {groups.length > 1 && <div className="am-sys-head">{g.system.label_en}</div>}
@@ -439,6 +490,77 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect }: LegendProps) 
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** TEMPORARY on-device scroll diagnostic. Triple-tap the legend header to open.
+ *  Reports whether the list is a bounded scroll box (sh>ch) and the touch-action /
+ *  backdrop-filter / transform of every ancestor, plus a live touch counter — so a
+ *  real iPhone can tell us why the list won't scroll (it scrolls in Chromium). */
+function DebugOverlay({ onClose }: { onClose: () => void }) {
+  const [text, setText] = useState('measuring…');
+  const t = useRef({ moves: 0, top: 0, max: 0 });
+  useEffect(() => {
+    const body = document.querySelector('.am-legend-body') as HTMLElement | null;
+    const onMove = () => {
+      if (!body) return;
+      t.current.moves += 1;
+      t.current.top = Math.round(body.scrollTop);
+      t.current.max = Math.max(t.current.max, t.current.top);
+    };
+    body?.addEventListener('touchmove', onMove, { passive: true });
+    body?.addEventListener('scroll', onMove, { passive: true });
+    const read = () => {
+      if (!body) {
+        setText('no .am-legend-body in DOM');
+        return;
+      }
+      const cs = getComputedStyle(body);
+      const L: string[] = [];
+      L.push(`UA ${navigator.userAgent}`);
+      const scrollable = body.scrollHeight > body.clientHeight + 1;
+      L.push(`BODY ch=${body.clientHeight} sh=${body.scrollHeight} scrollable=${scrollable ? 'YES' : 'NO'}`);
+      L.push(`overflowY=${cs.overflowY} touchAction=${cs.touchAction} maxH=${cs.maxHeight}`);
+      L.push(`wkOverflowScrolling=${cs.getPropertyValue('-webkit-overflow-scrolling') || 'n/a'}`);
+      let el: HTMLElement | null = body;
+      for (let i = 0; el && i < 9; i++) {
+        const c = getComputedStyle(el);
+        const name = typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : el.tagName;
+        const bf = c.getPropertyValue('backdrop-filter') || c.getPropertyValue('-webkit-backdrop-filter');
+        const maxH = c.maxHeight === 'none' ? '-' : c.maxHeight;
+        L.push(`${name} of=${c.overflow} maxH=${maxH} tf=${c.transform !== 'none' ? 'Y' : 'n'} bf=${bf && bf !== 'none' ? 'Y' : 'n'} ta=${c.touchAction}`);
+        if (el.classList?.contains('am-legend')) break;
+        el = el.parentElement;
+      }
+      L.push(`TOUCH moves=${t.current.moves} top=${t.current.top} maxTop=${t.current.max}  (drag the list while watching)`);
+      setText(L.join('\n'));
+    };
+    read();
+    const id = window.setInterval(read, 350);
+    return () => {
+      window.clearInterval(id);
+      body?.removeEventListener('touchmove', onMove);
+      body?.removeEventListener('scroll', onMove);
+    };
+  }, []);
+  return (
+    <div
+      style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 60, maxHeight: '52%',
+        overflow: 'auto', background: 'rgba(0,0,0,0.9)', color: '#3f3',
+        font: '11px/1.4 ui-monospace, monospace', padding: '8px 10px',
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+      }}
+    >
+      <button
+        onClick={onClose}
+        style={{ float: 'right', background: '#fff', color: '#000', border: 0, borderRadius: 6, padding: '3px 10px', fontSize: 13, fontFamily: 'sans-serif' }}
+      >
+        close ✕
+      </button>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>scroll diagnostic</div>
+      {text}
     </div>
   );
 }

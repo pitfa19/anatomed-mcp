@@ -111,13 +111,25 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   max-height: calc(100% - 1rem);
   display: flex;
   flex-direction: column;
-  background: var(--panel);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+}
+/* Panel background + blur live on a pseudo layer BEHIND the content, not on an
+   ancestor of the scroll list. iOS Safari/WKWebView breaks touch-scrolling of any
+   descendant of a `backdrop-filter` element — keeping the filter off the legend
+   itself is what lets the list scroll on iPhone (it scrolled in Chromium either way). */
+.am-legend::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 .am-legend.am-collapsed { width: max-content; }
 /* When collapsed, the (hidden) body's nowrap content would otherwise stretch the
@@ -128,6 +140,10 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 .am-legend-collapse {
   display: grid;
   grid-template-rows: 1fr;
+  /* Fill the legend's height so the grid track is definite and the body below
+     gets a real (bounded, scrollable) height on iOS — without this the list can
+     overflow and get clipped instead of scrolling. */
+  flex: 1 1 auto;
   min-height: 0;
   opacity: 1;
   transition: grid-template-rows 0.24s ease, opacity 0.2s ease;

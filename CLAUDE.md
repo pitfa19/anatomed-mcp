@@ -110,6 +110,14 @@ without the MCP handshake (used for Playwright pixel verification).
   `-webkit-overflow-scrolling:touch`. Headless-verified: top-anchored legend scrolls (237px),
   1-finger drag rotates, compact pill + corner panel render right. The **iframe chat-scroll fix
   is NOT reproducible headlessly** (iOS-iframe-specific) → confirmed by user on device.
+- Round 6 (2026-06-24): **legend scroll on iPhone.** Movement was fixed in Round 5, but the
+  legend list still wouldn't scroll on the real iPhone (scrolled in Chromium) — a WebKit bug:
+  **`backdrop-filter` on an ancestor breaks touch-scrolling of descendants on iOS Safari.** Fix:
+  move the panel background + blur off `.am-legend` onto a `.am-legend::before` layer (z-index:-1)
+  BEHIND the content, so the scroll list is no longer a descendant of a `backdrop-filter` element
+  (glass look preserved). Also `flex:1 1 auto` on `.am-legend-collapse` so the grid track is
+  definite and the body gets a real bounded height on iOS. Headless still scrolls (237px); iOS fix
+  needs on-device confirmation.
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).
@@ -143,6 +151,10 @@ without the MCP handshake (used for Playwright pixel verification).
   **non-passive** `touchmove` listener on the canvas that calls `preventDefault()` (R3F's own touch
   listeners are passive, so they can't). This canNOT be reproduced headlessly or in a standalone
   preview tab — it only manifests inside the app's iframe, so it needs a real-device check.
+- **iOS Safari breaks touch-scroll of any element nested under a `backdrop-filter` ancestor.** A
+  list with `overflow-y:auto` scrolls in Chromium but not on iPhone if an ancestor has
+  `backdrop-filter`. Put the blur on a `::before`/`::after` layer behind the content instead, so the
+  scroll container isn't a descendant of the filtered element. (Same class of "Chromium-only" trap.)
 - **A collapsed floating panel sized `width:auto` still stretches full-width** if its hidden body has
   `nowrap` content (that content drives intrinsic width even at `height:0`). Zero the hidden wrapper's
   width (`.am-collapsed .am-legend-collapse{width:0}`) so the pill sizes to just its header.

@@ -408,24 +408,21 @@ function Legend({ groups, visible, onToggle, onSetAll, onSelect, onDebug }: Lege
     const viewport = legend?.parentElement;
     if (!legend || !viewport) return;
     const fit = () => {
-      const head = legend.querySelector('.am-legend-head') as HTMLElement | null;
-      const actions = legend.querySelector('.am-legend-actions') as HTMLElement | null;
-      // Unconstrain the body first so the legend reports its true CSS-clamped
-      // max height (don't feed the body's own height back in → shrink loop).
-      body.style.maxHeight = 'none';
-      const avail = legend.clientHeight - (head?.offsetHeight ?? 0) - (actions?.offsetHeight ?? 0) - 6;
-      body.style.maxHeight = avail > 72 ? `${Math.round(avail)}px` : '';
+      const head = (legend.querySelector('.am-legend-head') as HTMLElement | null)?.offsetHeight || 44;
+      const actions = (legend.querySelector('.am-legend-actions') as HTMLElement | null)?.offsetHeight || 44;
+      // Base the bound on the VIEWPORT's fixed height (stable), not the legend's
+      // animating height — mirrors the CSS cap min(80%, 100% - 1rem) — minus the
+      // header + actions. A definite px height is what makes iOS scroll the list.
+      const cap = Math.min(viewport.clientHeight * 0.8, viewport.clientHeight - 16);
+      const avail = Math.round(cap - head - actions - 10);
+      body.style.maxHeight = avail > 96 ? `${avail}px` : '';
     };
     fit();
-    const settle = setTimeout(fit, 300); // re-measure after the collapse animation
     // Observe the VIEWPORT (not the legend) so our own body mutations don't
-    // re-trigger the observer; this catches resize / orientation changes.
+    // re-trigger the observer; catches resize / orientation changes.
     const ro = new ResizeObserver(fit);
     ro.observe(viewport);
-    return () => {
-      clearTimeout(settle);
-      ro.disconnect();
-    };
+    return () => ro.disconnect();
   }, [collapsed, groups]);
 
   // Triple-tap the header to open the on-device scroll diagnostic.
@@ -517,12 +514,15 @@ function DebugOverlay({ onClose }: { onClose: () => void }) {
         return;
       }
       const cs = getComputedStyle(body);
-      const L: string[] = [];
-      L.push(`UA ${navigator.userAgent}`);
       const scrollable = body.scrollHeight > body.clientHeight + 1;
-      L.push(`BODY ch=${body.clientHeight} sh=${body.scrollHeight} scrollable=${scrollable ? 'YES' : 'NO'}`);
-      L.push(`overflowY=${cs.overflowY} touchAction=${cs.touchAction} maxH=${cs.maxHeight}`);
-      L.push(`wkOverflowScrolling=${cs.getPropertyValue('-webkit-overflow-scrolling') || 'n/a'}`);
+      const L: string[] = [];
+      // Most important first (never cut off): live scroll + verdict.
+      if (body.clientHeight < 24) {
+        L.push('⚠ LEGEND IS COLLAPSED — tap the LEGEND pill to expand the list, THEN drag it');
+      }
+      L.push(`▶ DRAG THE LIST → scrollTop=${Math.round(body.scrollTop)} moves=${t.current.moves} maxTop=${t.current.max}`);
+      L.push(`scrollable=${scrollable ? 'YES' : 'NO'}  ch=${body.clientHeight} sh=${body.scrollHeight} maxH=${cs.maxHeight}`);
+      L.push(`overflowY=${cs.overflowY} ta=${cs.touchAction} wkScroll=${cs.getPropertyValue('-webkit-overflow-scrolling') || 'n/a'}`);
       let el: HTMLElement | null = body;
       for (let i = 0; el && i < 9; i++) {
         const c = getComputedStyle(el);
@@ -533,7 +533,7 @@ function DebugOverlay({ onClose }: { onClose: () => void }) {
         if (el.classList?.contains('am-legend')) break;
         el = el.parentElement;
       }
-      L.push(`TOUCH moves=${t.current.moves} top=${t.current.top} maxTop=${t.current.max}  (drag the list while watching)`);
+      L.push(`UA ${navigator.userAgent}`);
       setText(L.join('\n'));
     };
     read();

@@ -103,10 +103,11 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
   top: 0.5rem;
   right: 0.5rem;
   z-index: 4;
-  /* Promote to its own compositing layer. The 3D canvas is a touch-action:none
-     WebGL layer; without this the compositor folds the legend into that layer's
-     non-fast-scrollable region and touch-drag can't scroll the list. */
-  transform: translateZ(0);
+  /* NOTE: do NOT add `transform`/`translateZ` here. On iOS a transform +
+     overflow:hidden ancestor stops the nested list (.am-legend-body) from
+     receiving touch-scroll — the box is scrollable but a finger can't drive it.
+     (The legend already lives outside .am-stage, so it doesn't need a promoted
+     layer to escape the canvas's non-fast-scrollable region.) */
   width: clamp(168px, 42%, 240px);
   max-height: calc(100% - 1rem);
   display: flex;
@@ -297,8 +298,9 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     bottom: auto;
     width: min(72vw, 264px);
     max-width: calc(100% - 1rem);
-    /* Bounded so a long list scrolls inside instead of covering the model. */
-    max-height: min(68%, calc(100% - 1rem));
+    /* Bounded so a long list scrolls inside instead of covering the model;
+       collapsed it's just a pill, so the model is fully visible by default. */
+    max-height: min(80%, calc(100% - 1rem));
   }
 
   /* Finger-sized tap targets (~44px rows, bigger buttons). */

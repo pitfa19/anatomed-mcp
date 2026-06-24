@@ -127,6 +127,18 @@ without the MCP handshake (used for Playwright pixel verification).
   diagnostic** — triple-tap the legend header → overlay shows `body ch/sh/scrollable`, the
   touch-action/backdrop-filter/transform/overflow of every ancestor, the UA, and a live touch
   counter, so the iPhone can report WHY the list won't scroll. REMOVE the diagnostic once confirmed.
+- Round 8 (2026-06-24): **the actual iOS scroll bug, found via the on-device diagnostic.** On a real
+  iPhone (iOS 18.7) the diagnostic showed the body WAS a valid scroll box (`ch=181 sh=865
+  scrollable=YES`, overflow-y:auto, pan-y, `-webkit-overflow-scrolling=touch`, NO backdrop-filter
+  ancestor) — yet a finger couldn't drive it. The one anomaly: `.am-legend tf=Y`, the
+  `transform:translateZ(0)` from Round 4. **On iOS a `transform` + `overflow:hidden` ancestor
+  blocks touch-scroll of a nested `-webkit-overflow-scrolling` list** (scrollable but un-touchable).
+  The translateZ was added to escape the canvas's non-fast-scrollable region back when the legend was
+  INSIDE `.am-stage`; it's been a sibling since Round 4, so it's obsolete — removed it. Also bumped
+  the mobile legend cap 68%→80% (the app's iframe is short, so the list was cramped at ~181px).
+  CAVEAT/INVERSION: headless SwiftShader is the OPPOSITE — it *needs* the promoted layer to scroll a
+  layer over the canvas (non-spec quirk), so the CDP swipe test now reports 0 even though iOS should
+  scroll. Trust the device, not headless, for this one.
 - Not yet (intentional): 3D click-to-select (legend click already messages Claude;
   hover now shows the name), persistent labels/landmarks, fade-vs-hide as distinct
   states, active-recall/quiz mode (all flagged as future ideas in the research doc).

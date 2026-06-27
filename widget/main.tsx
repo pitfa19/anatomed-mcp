@@ -93,7 +93,7 @@ function Root() {
         <>
           <div className="am-header">
             <span className="am-title">{payload.title}</span>
-            <span className="am-sub">{payload.parts.length} structure(s)</span>
+            <span className="am-sub">{describeCount(payload)}</span>
           </div>
           <ErrorBoundary>
             <RegionViewer payload={payload} onSelect={onSelect} />
@@ -104,6 +104,15 @@ function Root() {
       )}
     </div>
   );
+}
+
+/** Header subtitle: count the focus structures, noting context ghosts separately
+ *  (so "biceps" reads as "1 structure · 5 nearby", not "6 structure(s)"). */
+function describeCount(payload: RegionPayload): string {
+  const focus = payload.parts.filter((p) => !p.context).length;
+  const ctx = payload.parts.length - focus;
+  const base = `${focus} structure${focus === 1 ? '' : 's'}`;
+  return ctx > 0 ? `${base} · ${ctx} nearby` : base;
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {

@@ -30,6 +30,7 @@ export function contextFor(
   focusIds: string[],
   perPart: number,
   cap: number,
+  only?: SystemId,
 ): Part[] {
   const neighbors = loadNeighbors();
   const index = getPartIndex(catalog);
@@ -53,6 +54,7 @@ export function contextFor(
   for (const [id] of ranked) {
     const part = index.get(id);
     if (!part) continue; // not in catalog (e.g. degenerate/".g")
+    if (only && part.system !== only) continue; // restrict to one system (e.g. bone anchor)
     out.push(part);
     if (out.length >= cap) break;
   }

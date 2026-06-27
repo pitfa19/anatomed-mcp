@@ -1,4 +1,4 @@
-import type { PartsCatalog } from './vendor/types';
+import type { Part, PartsCatalog, SystemId } from './vendor/types';
 import { resolveQueryToParts } from './vendor/resolveParts.js';
 import { getSystem } from './catalog.js';
 import { contextFor } from './neighbors.js';
@@ -13,6 +13,11 @@ import {
 /** Hard cap on focus structures. Enforces the product rule: always a bounded
  *  REGION, never the whole model. */
 export const MAX_REGION_PARTS = 60;
+
+/** Systems whose structures hang in space without a skeletal reference; when a
+ *  focus is made up only of these, an isolated view anchors them to their
+ *  nearest bones. */
+const FLOATING_SYSTEMS = new Set<SystemId>(['muscles', 'nerves', 'vessels', 'insertions']);
 
 /** Per-detail-level context tuning: how many nearest neighbours to pull per
  *  focus part, and the total context cap. */
@@ -50,7 +55,20 @@ export function buildRegion(
   for (const raw of queries) {
     const query = (raw ?? '').trim();
     if (!query) continue;
-    const resolved = resolveQueryToParts(catalog, query);
+    let resolved = resolveQueryToParts(catalog, query);
+    // Insertion footprints (728 attachment patches) pollute fuzzy matching:
+    // e.g. "Biceps brachii" lands on "Biceps brachii muscle-Radial insertion"
+    // rather than the muscle. When a query lands on a lone insertion and didn't
+    // ask for one, prefer a non-insertion match if one exists.
+    if (
+      resolved &&
+      resolved.parts.length === 1 &&
+      resolved.parts[0]!.system === 'insertions' &&
+      !/insertion|attach|origin|hvati/i.test(query)
+    ) {
+      const alt = resolveQueryToParts(withoutInsertions(catalog), query);
+      if (alt) resolved = alt;
+    }
     if (!resolved) {
       unmatched.push(query);
       continue;
@@ -80,20 +98,40 @@ export function buildRegion(
   const focusIds = parts.map((p) => p.id);
   const tuning = DETAIL_TUNING[detail];
   let contextCount = 0;
-  if (tuning.perPart > 0 && focusIds.length > 0) {
-    const ctx = contextFor(catalog, focusIds, tuning.perPart, tuning.cap);
-    for (const p of ctx) {
+  // Collapse left/right mirrors so the legend shows each context structure once
+  // (e.g. one "Clavicle", not two), matching the group dedup behaviour.
+  const ctxNames = new Set<string>();
+  const addContext = (candidates: Part[]) => {
+    for (const p of candidates) {
       if (seen.has(p.id)) continue;
+      const display = cleanName(p.name_en);
+      if (ctxNames.has(display)) {
+        seen.add(p.id);
+        continue;
+      }
+      ctxNames.add(display);
       seen.add(p.id);
       parts.push({
         id: p.id,
-        name_en: cleanName(p.name_en),
+        name_en: display,
         name_lat: cleanName(p.name_lat),
         system: p.system,
         side: p.side,
         context: true,
       });
       contextCount++;
+    }
+  };
+
+  if (tuning.perPart > 0 && focusIds.length > 0) {
+    addContext(contextFor(catalog, focusIds, tuning.perPart, tuning.cap));
+  } else if (detail === 'isolated' && focusIds.length > 0) {
+    // Anchor: a muscle/nerve/vessel shown alone floats in empty space. When the
+    // focus is *only* such structures (no bone), add its nearest few bones as
+    // translucent ghosts for orientation. Bone/organ focuses are self-contained.
+    const focusSystems = new Set(parts.map((p) => p.system));
+    if ([...focusSystems].every((s) => FLOATING_SYSTEMS.has(s))) {
+      addContext(contextFor(catalog, focusIds, 10, 5, 'skeleton'));
     }
   }
 
@@ -131,6 +169,25 @@ function cleanName(name: string): string {
   return name.replace(/\.\d{3}$/, '');
 }
 
+/** A catalog view with the `insertions` system removed (memoised per catalog so
+ *  the resolver's per-catalog index is built once). Used to retry resolution
+ *  when a query lands on a lone insertion footprint. */
+const noInsertCache = new WeakMap<PartsCatalog, PartsCatalog>();
+function withoutInsertions(catalog: PartsCatalog): PartsCatalog {
+  let c = noInsertCache.get(catalog);
+  if (!c) {
+    c = { ...catalog, parts: catalog.parts.filter((p) => p.system !== 'insertions') };
+    noInsertCache.set(catalog, c);
+  }
+  return c;
+}
+
+/** Join up to `max` names; beyond that, list a few and append "+N more". */
+function listOrCount(names: string[], max = 6): string {
+  if (names.length <= max) return names.join(', ');
+  return `${names.slice(0, max).join(', ')} +${names.length - max} more`;
+}
+
 function deriveTitle(
   focusParts: RegionPart[],
   expanded: NonNullable<RegionPayload['expanded']>,
@@ -153,13 +210,31 @@ function buildSummary(
   if (focusCount === 0) {
     lines.push('No matching anatomical structures were found.');
   } else {
-    lines.push(`Rendering an interactive 3D view of ${focusNames.join(', ')}.`);
+    lines.push(`Rendering an interactive 3D view of ${describeFocus(payload, focusNames)}.`);
   }
   if (contextCount > 0) {
     const ctxNames = [...new Set(payload.parts.filter((p) => p.context).map((p) => p.name_en))];
-    lines.push(`Surrounding context (${payload.detail}, shown translucent): ${ctxNames.join(', ')}.`);
+    if (payload.detail === 'isolated') {
+      lines.push(`Nearest bones shown translucent for orientation: ${listOrCount(ctxNames)}.`);
+    } else {
+      lines.push(
+        `Surrounding context (${payload.detail}, shown translucent): ${listOrCount(ctxNames)}.`,
+      );
+    }
   }
   if (payload.unmatched.length) lines.push(`Not found: ${payload.unmatched.join(', ')}.`);
   if (truncated) lines.push(`Focus capped at ${MAX_REGION_PARTS} structures.`);
   return lines.join(' ');
+}
+
+/** A compact phrase for the focus set: a named group reads as "the Hand bones
+ *  (27 structures)"; a handful of structures are listed; long ad-hoc sets are
+ *  abbreviated. Keeps the agent-facing summary terse instead of dumping 27 names. */
+function describeFocus(payload: RegionPayload, focusNames: string[]): string {
+  const exp = payload.expanded;
+  if (exp && exp.length === 1 && exp[0]!.count === focusNames.length) {
+    return `the ${exp[0]!.label} (${exp[0]!.count} structures)`;
+  }
+  if (focusNames.length > 8) return `${focusNames.length} structures: ${listOrCount(focusNames)}`;
+  return focusNames.join(', ');
 }

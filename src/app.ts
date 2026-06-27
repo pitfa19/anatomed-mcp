@@ -72,7 +72,7 @@ const TOOL_DESCRIPTION = [
   'e.g. ["cervical spine"], ["Femur", "Sciatic nerve"], ["hand bones"].',
   'Named regions (cervical/thoracic/lumbar spine, hand bones, foot bones, carpus, tarsus, skull bones, neurocranium, viscerocranium) expand to all their members.',
   'Set `detail` to control surrounding context:',
-  '"isolated" = only the requested structures (default; cleanest);',
+  '"isolated" = only the requested structures, with a lone muscle/nerve/vessel lightly anchored to its nearest bones so it is not floating (default; cleanest);',
   '"related" = also show the nearest neighbouring structures it passes through / runs near (translucent) — best for paths, routes, relations, "what does it pass", neurovascular bundles;',
   '"regional" = a wider surrounding context.',
   'The widget shows the focus structures solid + context translucent, with a legend the user can toggle per structure, plus rotate/zoom. Never the whole body.',
@@ -98,7 +98,7 @@ const TOOL = {
         type: 'string',
         enum: ['isolated', 'related', 'regional'],
         description:
-          'How much surrounding context to include. "isolated" (default) = only the requested structures. "related" = also show nearby structures it passes through/around (translucent). "regional" = a wider context. Use "related" for path/route/relations questions.',
+          'How much surrounding context to include. "isolated" (default) = only the requested structures (a lone muscle/nerve/vessel is auto-anchored to its nearest bones so it is not floating). "related" = also show nearby structures it passes through/around (translucent). "regional" = a wider context. Use "related" for path/route/relations questions.',
       },
     },
     required: ['parts'],

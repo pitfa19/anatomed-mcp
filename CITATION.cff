@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: >-
+  If you use Anatomed in your work, please cite it using the metadata below.
+  Once the accompanying paper is published, please cite that paper (see
+  `preferred-citation`) as well.
+title: "Anatomed MCP — interactive region-isolated 3D anatomy inline in Claude"
+abstract: >-
+  A Model Context Protocol (MCP) connector that renders interactive,
+  region-isolated, cognitive-load-bounded 3D anatomy inline in a Claude
+  conversation, queried in natural language across English, Latin and Croatian.
+type: software
+authors:
+  - family-names: Pitlović
+    given-names: Fabijan
+    # email / affiliation / ORCID: add when finalizing
+url: "https://anatomed-mcp.vercel.app"
+repository-code: "https://github.com/pitfa19/anatomed-mcp"
+license: MIT
+keywords:
+  - Anatomy
+  - "Education, Medical"
+  - "Artificial Intelligence"
+  - "Computer-Assisted Instruction"
+  - Model Context Protocol
+  - 3D visualization
+# The peer-reviewed paper describing this work (EFMI STC 2026, IOS Press SHTI).
+# Not yet published — details are provisional; update volume/pages/DOI on publication.
+preferred-citation:
+  type: conference-paper
+  title: "Anatomed: natural-language, region-isolated 3D anatomy inline in a conversational AI"  # TODO: confirm final title
+  authors:
+    - family-names: Pitlović
+      given-names: Fabijan
+  year: 2026
+  collection-title: "Studies in Health Technology and Informatics"
+  publisher:
+    name: "IOS Press"
+  conference:
+    name: "EFMI Special Topic Conference (STC 2026)"
+    city: "Athens"
+    country: "GR"
+  notes: "To appear."

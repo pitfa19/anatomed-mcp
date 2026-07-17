@@ -1,0 +1,15 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createApp, PORT } from './app.js';
+
+// Local dev / tunnel entry point. On Vercel the same app is served as a
+// serverless function via api/index.ts (which calls createApp()).
+const app = createApp();
+
+app.listen(PORT, () => {
+  console.log(`[anatomed-mcp] listening on http://localhost:${PORT}`);
+  console.log(`[anatomed-mcp] MCP endpoint:  POST http://localhost:${PORT}/mcp`);
+  if (!existsSync(resolve(process.cwd(), 'dist/index.html'))) {
+    console.warn('[anatomed-mcp] WARNING: dist/index.html missing — run `npm run build:widget`.');
+  }
+});

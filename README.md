@@ -118,7 +118,7 @@ For architecture details and project conventions, see [`CLAUDE.md`](CLAUDE.md).
 
 ## Also available: Obsidian plugin
 
-The same viewer also runs **inside Obsidian** as a standalone community plugin — write an
+The same viewer also runs **inside Obsidian** as a standalone community plugin: write an
 `anatomed` code block in any note and get a live, region-isolated 3D model inline, with
 click-to-create structure notes that wire anatomy into your knowledge map. It lives in its own
 repo: **[anatomed-obsidian](https://github.com/pitfa19/anatomed-obsidian)** (it vendors this
@@ -128,8 +128,8 @@ project's viewer core and streams the same models from the shared asset host).
 
 ## Credits & data sources
 
-The 3D anatomy models are derived from **[Z-Anatomy](https://www.z-anatomy.com/)** —
-*the libre 3D atlas of anatomy* by Gauthier Kervyn and Marcin Zielinski — which is
+The 3D anatomy models are derived from **[Z-Anatomy](https://www.z-anatomy.com/)**,
+*the libre 3D atlas of anatomy* by Gauthier Kervyn and Marcin Zielinski, which is
 licensed **CC BY-SA 4.0**. Z-Anatomy is itself derived from
 **[BodyParts3D](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/)** © the Database
 Center for Life Science (**DBCLS**), licensed **CC BY-SA 2.1 Japan**.
@@ -146,11 +146,11 @@ This project is under **two** licenses:
 
 | Part | License |
 |------|---------|
-| **Software** — source code, build scripts, config (`src/`, `widget/`, `api/`, …) | **[MIT](LICENSE)** © 2026 Fabijan Pitlović |
-| **Anatomy models + derived data** — GLBs, `assets/parts-catalog.json`, `assets/parts-neighbors.json` | **[CC BY-SA 4.0](LICENSE-ASSETS)** (attribution + share-alike) |
+| **Software**: source code, build scripts, config (`src/`, `widget/`, `api/`, …) | **[MIT](LICENSE)** © 2026 Fabijan Pitlović |
+| **Anatomy models + derived data**: GLBs, `assets/parts-catalog.json`, `assets/parts-neighbors.json` | **[CC BY-SA 4.0](LICENSE-ASSETS)** (attribution + share-alike) |
 
 The MIT license covers only the code. Note that MIT does **not** require citation in
-a paper — it only requires that anyone who redistributes the *source code* keeps the
+a paper; it only requires that anyone who redistributes the *source code* keeps the
 copyright notice and license text. To cite this work academically, use the section
 below. The anatomy models are **not** MIT: reusing or redistributing them requires
 attribution to Z-Anatomy/BodyParts3D **and** sharing derivatives under CC BY-SA 4.0.
@@ -168,4 +168,4 @@ Press, *Studies in Health Technology and Informatics*):
 
 ---
 
-![anatom3D: explore the body, one question at a time](docs/endcard.png)
+![Anatom3D: explore the body, one question at a time](docs/endcard.png)

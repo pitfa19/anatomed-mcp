@@ -1,21 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { PartsCatalog, SystemId, SystemMeta } from './vendor/types';
 
-// Resolved from CWD: project root locally, the Lambda task root on Vercel.
-const CATALOG_PATH = resolve(process.cwd(), 'assets/parts-catalog.json');
-
-let cache: PartsCatalog | null = null;
-
-/** Load the committed parts catalog from disk (once). Drops Z-Anatomy
- *  top-level group containers (".g") exactly like the web app's loader. */
-export function loadCatalog(): PartsCatalog {
-  if (cache) return cache;
-  const data = JSON.parse(readFileSync(CATALOG_PATH, 'utf8')) as PartsCatalog;
-  data.parts = data.parts.filter((p) => !p.id.endsWith('.g'));
-  cache = data;
-  return data;
-}
+// Pure, browser-safe catalog helpers. The disk-based loader (loadCatalog) lives in the
+// Node-only assets-node.ts (server); browser hosts (the widget, the Obsidian plugin)
+// inject or fetch the catalog and call these helpers. Nothing here reads from disk.
 
 export function getSystem(catalog: PartsCatalog, id: SystemId): SystemMeta | null {
   return catalog.systems.find((s) => s.id === id) ?? null;

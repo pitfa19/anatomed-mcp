@@ -9,7 +9,7 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { loadCatalog } from './catalog.js';
+import { loadCatalog, primeNeighborsFromDisk } from './assets-node.js';
 import { buildRegion } from './region.js';
 
 // Runtime data files resolved from the process CWD (project root locally; the
@@ -165,6 +165,10 @@ function buildMcpServer(): Server {
     const detail =
       args.detail === 'related' || args.detail === 'regional' ? args.detail : 'isolated';
 
+    // Neighbour context is only needed at related/regional; prime it lazily from disk
+    // so isolated requests never pay the ~5.96 MB parse.
+    if (detail !== 'isolated') primeNeighborsFromDisk();
+
     const { payload, summary } = buildRegion(catalog, queries, ASSET_BASE_URL, { title, detail });
 
     return {
@@ -235,6 +239,7 @@ export function createApp(): express.Express {
       : [String(req.query.region ?? 'cervical spine')];
     const d = String(req.query.detail ?? 'isolated');
     const detail = d === 'related' || d === 'regional' ? d : 'isolated';
+    if (detail !== 'isolated') primeNeighborsFromDisk();
     const { payload } = buildRegion(catalog, queries, ASSET_BASE_URL, { detail });
     const inject = `<script>window.__ANATOMED_PREVIEW__=${htmlSafeJson({ payload, theme })};</script>`;
     res.type('html').send(widgetHtml().replace('</head>', `${inject}</head>`));

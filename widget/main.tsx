@@ -7,6 +7,15 @@ import './styles.css';
 
 type Theme = 'light' | 'dark';
 
+/** Browser JSON loader for RegionViewer's self-fetch fallbacks (catalog + neighbours).
+ *  The Obsidian host injects those instead (bundled catalog + requestUrl), so only this
+ *  MCP/iframe build uses `fetch`. */
+const fetchJson = (url: string): Promise<unknown> =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error(String(r.status));
+    return r.json() as Promise<unknown>;
+  });
+
 interface PreviewGlobal {
   payload: RegionPayload;
   theme?: Theme;
@@ -96,7 +105,7 @@ function Root() {
             <span className="am-sub">{payload.parts.length} structure(s)</span>
           </div>
           <ErrorBoundary>
-            <RegionViewer payload={payload} onSelect={onSelect} />
+            <RegionViewer payload={payload} onSelect={onSelect} fetchJson={fetchJson} />
           </ErrorBoundary>
         </>
       ) : (

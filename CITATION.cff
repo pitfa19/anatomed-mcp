@@ -15,7 +15,7 @@ authors:
     # email / affiliation / ORCID: add when finalizing
 url: "https://anatomed-mcp.vercel.app"
 repository-code: "https://github.com/pitfa19/anatomed-mcp"
-license: MIT
+license: CC-BY-SA-4.0
 keywords:
   - Anatomy
   - "Education, Medical"

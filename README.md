@@ -142,18 +142,20 @@ GLB and meshopt-compressed; catalogue + neighbour data generated). See
 
 ## Licensing
 
-This project is under **two** licenses:
+The **whole project** — source code, build scripts, configuration, the 3D anatomy
+models, and all data derived from them — is licensed under
+**[Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](LICENSE)**
+© 2026 Fabijan Pitlović.
 
-| Part | License |
-|------|---------|
-| **Software**: source code, build scripts, config (`src/`, `widget/`, `api/`, …) | **[MIT](LICENSE)** © 2026 Fabijan Pitlović |
-| **Anatomy models + derived data**: GLBs, `assets/parts-catalog.json`, `assets/parts-neighbors.json` | **[CC BY-SA 4.0](LICENSE-ASSETS)** (attribution + share-alike) |
+Anyone may use, share, and adapt Anatomed, including commercially, provided they
+(1) give attribution, (2) indicate changes, and (3) license their derivatives under
+CC BY-SA 4.0 (or a compatible license). See [`NOTICE`](NOTICE) for the attribution
+details and the Z-Anatomy / BodyParts3D provenance.
 
-The MIT license covers only the code. Note that MIT does **not** require citation in
-a paper; it only requires that anyone who redistributes the *source code* keeps the
-copyright notice and license text. To cite this work academically, use the section
-below. The anatomy models are **not** MIT: reusing or redistributing them requires
-attribution to Z-Anatomy/BodyParts3D **and** sharing derivatives under CC BY-SA 4.0.
+This single license keeps the whole work under the same terms as the Z-Anatomy
+models it builds on. Note that CC BY-SA 4.0 requires **attribution** but does not by
+itself compel an academic **citation** — to cite this work in a paper, use the
+section below.
 
 ## How to cite
 

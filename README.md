@@ -1,3 +1,5 @@
+![Anatom3D — MCP tool: the human body, one tool call away](docs/title.png)
+
 # ANATOMED MCP
 
 Interactive, region-isolated **3D anatomy**, rendered **inline in Claude**. Ask for an
@@ -80,32 +82,13 @@ Run the headless protocol check with `npx tsx scripts/smoke.ts`.
 
 ---
 
-## Deploy
-
-Hosted on **Vercel**. Every push to `main` auto-deploys. To deploy manually:
-
-```bash
-npx vercel deploy --prod
-```
-
-The Express app is served as a single serverless function (`api/index.ts`); `vercel.json`
-builds the widget and bundles the catalog/data files into the function. No environment
-variables are required (asset URL defaults to the public Supabase bucket).
-
-### Updating the 3D models
-
-GLBs live in a public Supabase Storage bucket (gitignored locally). To re-upload after a
-model change: `cp .env.example .env`, fill in the Supabase keys, then `npm run upload:assets`.
-
----
-
 ## Project layout
 
 | Path | What |
 |------|------|
 | `src/app.ts` | Express app: `show_anatomy_region` tool + `ui://` widget resource (CSP) + routes |
 | `src/server.ts` | Local dev server (listens on `:3000`) |
-| `api/index.ts` | Vercel serverless entry (serves the same app) |
+| `api/index.ts` | Serverless entry point (serves the same app when hosted) |
 | `src/region.ts` | Resolve a query → bounded region payload |
 | `src/catalog.ts`, `src/neighbors.ts` | Parts catalog + nearest-neighbour (context) data |
 | `src/vendor/` | Vendored from anatomed-web (types, fuzzy match, group resolution) |
@@ -167,7 +150,3 @@ Press, *Studies in Health Technology and Informatics*):
 > Pitlović F. *Anatomed: natural-language, region-isolated 3D anatomy inline in a
 > conversational AI.* In: Studies in Health Technology and Informatics. IOS Press;
 > 2026. EFMI Special Topic Conference (STC 2026), Athens. *(to appear)*
-
----
-
-![Anatom3D: explore the body, one question at a time](docs/endcard.png)

@@ -15,3 +15,7 @@ assets/glb/
 # Local agent/tool state (not part of the project)
 .claude/
 .serena/
+
+# Local-only paper tooling: hardcodes a private Obsidian vault path, so it must
+# never be published with the repo.
+scripts/build-paper-pdf.py

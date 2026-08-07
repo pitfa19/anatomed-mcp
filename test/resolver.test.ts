@@ -18,6 +18,16 @@ test('generic carotid is declined as ambiguous instead of selecting a branch', (
   assert.match(payload.issues?.[0]?.message ?? '', /common, internal, or external/i);
 });
 
+test('unsided carotid branches are declined instead of mixing sides', () => {
+  for (const query of ['common carotid artery', 'internal carotid artery', 'external carotid artery']) {
+    const payload = resolve(query);
+    assert.equal(payload.parts.length, 0);
+    assert.deepEqual(payload.unmatched, []);
+    assert.equal(payload.issues?.[0]?.kind, 'ambiguous');
+    assert.deepEqual(payload.issues?.[0]?.options?.map((option) => option.split(' ')[0]), ['left', 'right']);
+  }
+});
+
 test('Latin Cor expands to heart chambers and never resolves to Cornea', () => {
   const payload = resolve('Cor');
   assert.deepEqual(new Set(payload.parts.map((part) => part.name_en)), new Set(['Right atrium', 'Left atrium', 'Right ventricle', 'Left ventricle']));

@@ -183,6 +183,21 @@ const QUERY_ISSUES: Record<string, ResolutionIssue> = {
       'right external carotid artery',
     ],
   },
+  'common carotid artery': {
+    kind: 'ambiguous',
+    message: 'Specify left or right common carotid artery.',
+    options: ['left common carotid artery', 'right common carotid artery'],
+  },
+  'internal carotid artery': {
+    kind: 'ambiguous',
+    message: 'Specify left or right internal carotid artery.',
+    options: ['left internal carotid artery', 'right internal carotid artery'],
+  },
+  'external carotid artery': {
+    kind: 'ambiguous',
+    message: 'Specify left or right external carotid artery.',
+    options: ['left external carotid artery', 'right external carotid artery'],
+  },
   'femoral neck': {
     kind: 'unavailable',
     message: 'The atlas has no separately addressable femoral-neck mesh; request the femur instead.',

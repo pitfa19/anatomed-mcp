@@ -13,6 +13,7 @@
     "start": "tsx src/server.ts",
     "preview:widget": "vite build && tsx src/server.ts",
     "upload:assets": "tsx scripts/upload-assets.ts",
+    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

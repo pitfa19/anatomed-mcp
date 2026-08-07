@@ -178,7 +178,7 @@ without the MCP handshake (used for Playwright pixel verification).
 ## Gotchas
 
 - Server (`npm run start`) is **not** watch mode — restart after editing `src/**`. Widget changes need `npm run build:widget`.
-- Catalog granularity: no single "Heart"/"Sternum" mesh (decomposed) — such queries land in `unmatched`. Whole bones / major vessels / nerves / named regions resolve well.
+- Catalog granularity: there is no single Heart or Sternum mesh. The resolver expands Heart to the four chambers and Sternum to manubrium, body, and xiphoid process. Unavailable substructures such as the femoral neck return an explicit issue instead of a fuzzy substitute.
 - Part `id` keeps its raw `.001` suffix (must match the GLB node via `sanitizeNodeName`); only the **display** name is cleaned (`cleanName` in `region.ts`).
 - **Vercel/ESM**: relative runtime imports in the server graph (`src/**`, `api/**`) MUST carry `.js`
   extensions — Vercel's Node runtime transpiles per-file (no bundling), so Node's native ESM resolver

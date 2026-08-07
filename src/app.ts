@@ -71,6 +71,7 @@ const TOOL_DESCRIPTION = [
   'Pass one or more anatomical structures or a named region in `parts` (English, Latin, or Croatian) —',
   'e.g. ["cervical spine"], ["Femur", "Sciatic nerve"], ["hand bones"].',
   'Named regions (cervical/thoracic/lumbar spine, hand bones, foot bones, carpus, tarsus, skull bones, neurocranium, viscerocranium) expand to all their members.',
+  'Decomposed sternum and heart queries expand to bounded composites. Ambiguous queries return no structure plus explicit options; never treat an ambiguity as a successful render.',
   'Set `detail` to control surrounding context:',
   '"isolated" = only the requested structures (default; cleanest);',
   '"related" = also show the nearest neighbouring structures it passes through / runs near (translucent) — best for paths, routes, relations, "what does it pass", neurovascular bundles;',

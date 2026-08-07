@@ -39,9 +39,9 @@ course, then rotate and explore it in 3D. Click the image to play.
 **hover** a structure to see its name · toggle structures in the **legend** · the
 **recenter** button (top-left) re-frames the view.
 
-> Some structures are decomposed in the source model (e.g. **Heart**, **Lung**, **Sternum**)
-> and won't resolve as a single mesh. Whole bones, major vessels and nerves, organs, and the
-> named regions above all work well.
+> Some structures are decomposed in the source model. **Heart** resolves to the four chamber
+> meshes and **Sternum** to its manubrium, body, and xiphoid process; other unavailable
+> substructures are declined explicitly instead of being replaced by a fuzzy neighbour.
 
 ---
 

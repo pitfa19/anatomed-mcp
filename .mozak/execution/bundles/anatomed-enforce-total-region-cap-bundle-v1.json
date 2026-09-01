@@ -1,0 +1,450 @@
+{
+  "packet": {
+    "contract_version": 1,
+    "id": "anatomed-enforce-total-region-cap",
+    "version": 1,
+    "released_at": "2026-09-01T10:44:00Z",
+    "released_by": "project owner",
+    "packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e",
+    "objective": "Enforce MAX_REGION_PARTS as a total payload cap in assembleRegion and add near-limit regression tests without changing public contracts.",
+    "scope": {
+      "included": [
+        "src/region.ts",
+        "test/resolver.test.ts"
+      ],
+      "excluded": [
+        "all other application source",
+        "package files",
+        "existing documentation",
+        "deployment",
+        "network access",
+        ".mozak control artifacts"
+      ],
+      "permitted_capabilities": [
+        "read_repository",
+        "modify_scoped_files",
+        "run_declared_tests"
+      ]
+    },
+    "context": [
+      {
+        "id": "ctx-objective",
+        "media_type": "text/plain",
+        "content": "Implement the next ready goal: ensure assembleRegion returns no more than MAX_REGION_PARTS total focus plus context parts, and add deterministic regression tests for primed-neighbor regional assembly with 40, 50, and 55 focus items.",
+        "content_sha256": "0998f4837d863acf8ae7f701de9947796d1518968ee3dacd393f3b75a3e13ed4",
+        "provenance": "planning-goal:enforce-total-region-cap@1"
+      },
+      {
+        "id": "ctx-region-source",
+        "media_type": "text/typescript",
+        "content": "/** Hard cap on focus structures. Enforces the product rule: always a bounded\n *  REGION, never the whole model. */\nexport const MAX_REGION_PARTS = 60;\n\n/** Per-detail-level context tuning: how many nearest neighbours to pull per\n *  focus part, and the total context cap. */\nconst DETAIL_TUNING: Record<RegionDetail, { perPart: number; cap: number }> = {\n  isolated: { perPart: 0, cap: 0 },\n  related: { perPart: 6, cap: 14 },\n  regional: { perPart: 14, cap: 30 },\n};\n\nexport interface BuildRegionResult {\n  payload: RegionPayload;\n  summary: string;\n}\n\nexport interface BuildRegionOptions {\n  title?: string;\n  detail?: RegionDetail;\n}\n\n/** Resolve queries into a bounded RegionPayload, optionally adding surrounding\n *  context structures (nearest neighbours) at higher detail levels. */\nexport function buildRegion(\n  catalog: PartsCatalog,\n  queries: string[],\n  assetBase: string,\n  opts: BuildRegionOptions = {},\n): BuildRegionResult {\n  const detail: RegionDetail = opts.detail ?? 'isolated';\n  const focus: RegionPart[] = [];\n  const seen = new Set<string>();\n  const unmatched: string[] = [];\n  const expanded: NonNullable<RegionPayload['expanded']> = [];\n  const issues: NonNullable<RegionPayload['issues']> = [];\n  let truncated = false;\n\n  for (const raw of queries) {\n    const query = (raw ?? '').trim();\n    if (!query) continue;\n    const resolved = resolveQueryToParts(catalog, query);\n    if (!resolved) {\n      unmatched.push(query);\n      continue;\n    }\n    if (resolved.issue) {\n      issues.push({ query, ...resolved.issue });\n      continue;\n    }\n    if (resolved.expanded) {\n      expanded.push({ query, label: resolved.expanded.label, count: resolved.expanded.count });\n    }\n    for (const p of resolved.parts) {\n      if (seen.has(p.id)) continue;\n      if (focus.length >= MAX_REGION_PARTS) {\n        truncated = true;\n        break;\n      }\n      seen.add(p.id);\n      focus.push({\n        id: p.id, // raw id \u2014 must match the GLB node name\n        name_en: cleanName(p.name_en),\n        name_lat: cleanName(p.name_lat),\n        system: p.system,\n        side: p.side,\n      });\n    }\n    if (truncated) break;\n  }\n\n  const payload = assembleRegion(catalog, focus, assetBase, {\n    detail,\n    title: opts.title,\n    unmatched,\n    expanded,\n    issues,\n  });\n\n  const focusCount = payload.parts.filter((p) => !p.context).length;\n  const contextCount = payload.parts.filter((p) => p.context).length;\n  const summary = buildSummary(payload, focusCount, contextCount, truncated);\n  return { payload, summary };\n}\n\nexport interface AssembleRegionOptions {\n  detail: RegionDetail;\n  title?: string;\n  unmatched?: string[];\n  expanded?: RegionPayload['expanded'];\n  issues?: RegionPayload['issues'];\n}\n\n/** Assemble a bounded RegionPayload from ALREADY-RESOLVED focus parts: dedupe + cap the\n *  focus, add surrounding context (nearest neighbours) for related/regional detail, and\n *  build the systems + title. Shared by buildRegion (server) and the widget's live\n *  client-side recompute (detail switch / add / remove). Focus parts are assumed already\n *  cleaned (see cleanName); only freshly-pulled context parts are cleaned here. */\nexport function assembleRegion(\n  catalog: PartsCatalog,\n  focusParts: RegionPart[],\n  assetBase: string,\n  opts: AssembleRegionOptions,\n): RegionPayload {\n  const detail = opts.detail;\n  const parts: RegionPart[] = [];\n  const seen = new Set<string>();\n\n  for (const p of focusParts) {\n    if (seen.has(p.id)) continue;\n    if (parts.length >= MAX_REGION_PARTS) break;\n    seen.add(p.id);\n    // Drop any stray context flag \u2014 these are focus structures.\n    parts.push({\n      id: p.id,\n      name_en: p.name_en,\n      name_lat: p.name_lat,\n      system: p.system,\n      side: p.side,\n    });\n  }\n\n  // Surrounding context (structures the focus parts pass through / near).\n  const focusIds = parts.map((p) => p.id);\n  const tuning = DETAIL_TUNING[detail];\n  if (tuning.perPart > 0 && focusIds.length > 0) {\n    const ctx = contextFor(catalog, focusIds, tuning.perPart, tuning.cap);\n    for (const p of ctx) {\n      if (seen.has(p.id)) continue;\n      seen.add(p.id);\n      parts.push({\n        id: p.id,\n        name_en: cleanName(p.name_en),\n        name_lat: cleanName(p.name_lat),\n        system: p.system,\n        side: p.side,\n        context: true,\n      });\n    }\n  }\n\n  const sysIds = [...new Set(parts.map((p) => p.system))];\n  const systems: RegionSystemMeta[] = sysIds.map((id) => {\n    const s = getSystem(catalog, id);\n    return {\n      id,\n      label_en: s?.label_en ?? id,\n      tint: s?.tint ?? '#cccccc',\n      glb: `glb/${id}.glb`,\n    };\n  });\n\n  const focusOnly = parts.filter((p) => !p.context);\n  const expanded = opts.expanded ?? [];\n  const resolvedTitle = opts.title?.trim() || deriveTitle(focusOnly, expanded);\n\n  return {\n    schema: REGION_SCHEMA,\n    title: resolvedTitle,\n    assetBase,\n    parts,\n    systems,\n    detail,\n    unmatched: opts.unmatched ?? [],\n    issues: opts.issues?.length ? opts.issues : undefined,\n    expanded: expanded.length ? expanded : undefined,\n  };\n}\n",
+        "content_sha256": "aff2351556c1ee9416ac62749429cddbc2dd024a4b58d5c00db55bddbb11112f",
+        "provenance": "repository:35ec3a711522abb33dda3f6a549c83fed9a27b23:src/region.ts#L13-L180"
+      },
+      {
+        "id": "ctx-neighbor-source",
+        "media_type": "text/typescript",
+        "content": "import type { Part, PartsCatalog, SystemId } from './vendor/types';\nimport { getPartIndex } from './catalog.js';\n\n// Pure, browser-safe neighbour context. The disk-based loader lives in the Node-only\n// assets-node.ts (server); browser hosts (the widget, the Obsidian plugin) fetch\n// parts-neighbors.json at runtime and seed it via primeNeighbors(). Nothing here reads\n// from disk, so region.ts (buildRegion) stays bundleable into the browser widget.\n\nexport interface Neighbor {\n  id: string;\n  system: SystemId;\n  dist: number;\n}\nexport type NeighborMap = Record<string, Neighbor[]>;\n\nlet cache: NeighborMap | null = null;\n\n/** Seed the neighbour map directly instead of reading it from disk. Browser hosts ship\n *  parts-neighbors.json as a runtime-fetched asset and prime it here; the server primes\n *  it from disk (assets-node.ts). `contextFor` returns [] until the map is primed. */\nexport function primeNeighbors(map: NeighborMap): void {\n  cache = map;\n}\n\n/** Surrounding-context structures for a set of focus parts: the nearest\n *  precomputed neighbours (by AABB-to-AABB distance) across all systems \u2014\n *  i.e. the structures each focus part passes through / runs near. Ranked by\n *  closest-to-any-focus, de-duped, excluding the focus set, capped.\n *  Returns [] if the neighbour map hasn't been primed yet. */\nexport function contextFor(\n  catalog: PartsCatalog,\n  focusIds: string[],\n  perPart: number,\n  cap: number,\n): Part[] {\n  const neighbors = cache ?? {};\n  const index = getPartIndex(catalog);\n  const focus = new Set(focusIds);\n\n  // neighbour id \u2192 best (smallest) rank across all focus parts\n  const bestRank = new Map<string, number>();\n  for (const fid of focusIds) {\n    const list = neighbors[fid];\n    if (!list) continue;\n    const take = list.slice(0, perPart);\n    take.forEach((n, rank) => {\n      if (focus.has(n.id)) return;\n      const prev = bestRank.get(n.id);\n      if (prev === undefined || rank < prev) bestRank.set(n.id, rank);\n    });\n  }\n\n  const ranked = [...bestRank.entries()].sort((a, b) => a[1] - b[1]);\n  const out: Part[] = [];\n  for (const [id] of ranked) {\n    const part = index.get(id);\n    if (!part) continue; // not in catalog (e.g. degenerate/\".g\")\n    out.push(part);\n    if (out.length >= cap) break;\n  }\n  return out;\n}\n",
+        "content_sha256": "89b7815293d47ecbf0843f80ced4e99da0af230daef48b2acd4264c4fc636ef3",
+        "provenance": "repository:35ec3a711522abb33dda3f6a549c83fed9a27b23:src/neighbors.ts#L1-L62"
+      },
+      {
+        "id": "ctx-test-source",
+        "media_type": "text/typescript",
+        "content": "import assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport test from 'node:test';\nimport { buildRegion } from '../src/region.js';\nimport type { PartsCatalog } from '../src/vendor/types.js';\n\nconst catalog = JSON.parse(readFileSync(new URL('../assets/parts-catalog.json', import.meta.url), 'utf8')) as PartsCatalog;\n\nfunction resolve(query: string) {\n  return buildRegion(catalog, [query], 'test', { detail: 'isolated' }).payload;\n}\n\ntest('generic carotid is declined as ambiguous instead of selecting a branch', () => {\n  const payload = resolve('carotid artery');\n  assert.equal(payload.parts.length, 0);\n  assert.deepEqual(payload.unmatched, []);\n  assert.equal(payload.issues?.[0]?.kind, 'ambiguous');\n  assert.match(payload.issues?.[0]?.message ?? '', /common, internal, or external/i);\n});\n\ntest('unsided carotid branches are declined instead of mixing sides', () => {\n  for (const query of ['common carotid artery', 'internal carotid artery', 'external carotid artery']) {\n    const payload = resolve(query);\n    assert.equal(payload.parts.length, 0);\n    assert.deepEqual(payload.unmatched, []);\n    assert.equal(payload.issues?.[0]?.kind, 'ambiguous');\n    assert.deepEqual(payload.issues?.[0]?.options?.map((option) => option.split(' ')[0]), ['left', 'right']);\n  }\n});\n\ntest('Latin Cor expands to heart chambers and never resolves to Cornea', () => {\n  const payload = resolve('Cor');\n  assert.deepEqual(new Set(payload.parts.map((part) => part.name_en)), new Set(['Right atrium', 'Left atrium', 'Right ventricle', 'Left ventricle']));\n  assert.equal(payload.parts.some((part) => part.name_en === 'Cornea'), false);\n  assert.equal(payload.expanded?.[0]?.label, 'Heart (four chambers)');\n});\n\ntest('heart expands to an explicit bounded four-chamber composite', () => {\n  const payload = resolve('heart');\n  assert.equal(payload.parts.length, 4);\n  assert.equal(payload.expanded?.[0]?.label, 'Heart (four chambers)');\n});\n\ntest('sternum expands to manubrium, body, and xiphoid process', () => {\n  const payload = resolve('sternum');\n  assert.deepEqual(new Set(payload.parts.map((part) => part.name_en)), new Set(['Manubrium of sternum', 'Body of sternum', 'Xiphoid process']));\n});\n\ntest('femoral neck and Latin synonym are explicitly unavailable', () => {\n  for (const query of ['femoral neck', 'neck of femur', 'Collum femoris']) {\n    const payload = resolve(query);\n    assert.equal(payload.parts.length, 0);\n    assert.equal(payload.issues?.[0]?.kind, 'unavailable');\n  }\n});\n\ntest('invented ligament remains unmatched without substitution', () => {\n  const payload = resolve('ligamentum pitlovicense');\n  assert.equal(payload.parts.length, 0);\n  assert.deepEqual(payload.unmatched, ['ligamentum pitlovicense']);\n  assert.equal(payload.issues, undefined);\n});\n",
+        "content_sha256": "e6d1f2e36cbb9ba555b13d271af66673972e8d785e542a23d7ba5386bbcaae1d",
+        "provenance": "repository:35ec3a711522abb33dda3f6a549c83fed9a27b23:test/resolver.test.ts#L1-L62"
+      },
+      {
+        "id": "ctx-research-synthesis",
+        "media_type": "application/json",
+        "content": "{\n  \"run_id\": \"run-9dc1ba80e2c5b5145cb46c0b\",\n  \"artifact_hash\": \"40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414\",\n  \"gap\": {\n    \"id\": \"gap-total-region-cap\",\n    \"description\": \"At baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, an offline synthetic catalog and primed neighbor map reproduce assembleRegion regional totals of 70, 80, and 85 for 40, 50, and 55 focus items. MAX_REGION_PARTS is 60, so the focus-only cap plus an independently capped context append violates the documented total-region cap. Existing resolver tests do not exercise assembleRegion with primed neighbors near the limit.\",\n    \"impact\": \"high\"\n  },\n  \"synthesis\": {\n    \"summary\": \"The product and pedagogy documents require bounded total regions, but assembleRegion caps focus parts before appending up to 30 context parts without checking remaining total capacity. The gap is reproducible and regression coverage is absent.\",\n    \"claims\": [\n      {\n        \"id\": \"claim-total-cap-required\",\n        \"text\": \"Every assembled region payload should contain at most MAX_REGION_PARTS total parts, including context.\",\n        \"evidence_ids\": [\n          \"ev-readme-total-cap\",\n          \"ev-study-bounded\",\n          \"ev-max-constant\"\n        ],\n        \"status\": \"supported\"\n      },\n      {\n        \"id\": \"claim-current-assembly-overflows\",\n        \"text\": \"assembleRegion caps focus parts at 60 but appends regional context without enforcing the remaining total capacity.\",\n        \"evidence_ids\": [\n          \"ev-focus-only-cap\",\n          \"ev-context-uncapped-push\",\n          \"ev-neighbor-context-cap\"\n        ],\n        \"status\": \"supported\"\n      },\n      {\n        \"id\": \"claim-regression-needed\",\n        \"text\": \"Regression tests should cover primed-neighbor regional assembly near the 60-part limit, including 40, 50, and 55 focus items.\",\n        \"evidence_ids\": [\n          \"ev-tests-no-cap-regression\",\n          \"ev-context-uncapped-push\",\n          \"ev-max-constant\"\n        ],\n        \"status\": \"supported\"\n      }\n    ],\n    \"overall_claim\": \"supported\"\n  },\n  \"reproduction\": {\n    \"contract_version\": 1,\n    \"repository_revision\": \"35ec3a711522abb33dda3f6a549c83fed9a27b23\",\n    \"command\": \"npx tsx -e <offline synthetic catalog; primeNeighbors; assembleRegion regional for 40/50/55 focus items>\",\n    \"observations\": [\n      {\n        \"focus_parts\": 40,\n        \"context_parts\": 30,\n        \"total_parts\": 70\n      },\n      {\n        \"focus_parts\": 50,\n        \"context_parts\": 30,\n        \"total_parts\": 80\n      },\n      {\n        \"focus_parts\": 55,\n        \"context_parts\": 30,\n        \"total_parts\": 85\n      }\n    ],\n    \"expected_max_total_parts\": 60,\n    \"status\": \"reproduced\",\n    \"executed_at\": \"2026-09-01T10:42:01Z\"\n  }\n}",
+        "content_sha256": "67ef622a1b646aee5ca993fb402e148795830e3e4dc9026882ad960fec359031",
+        "provenance": "research-run:run-9dc1ba80e2c5b5145cb46c0b"
+      },
+      {
+        "id": "ctx-planning-inputs",
+        "media_type": "application/json",
+        "content": "{\n  \"contract_version\": 1,\n  \"id\": \"inputs-anatomed-region-cap-v1\",\n  \"accepted_at\": \"2026-09-01T10:43:00Z\",\n  \"inputs\": [\n    {\n      \"id\": \"input-owner-selected-anatomed\",\n      \"text\": \"Use anatomed-mcp as the owner-selected first external Project Framework onboarding repository, preserving its application architecture and limiting pre-execution changes to .mozak control artifacts.\",\n      \"provenance\": {\n        \"kind\": \"human_decision\",\n        \"decision_id\": \"2026-09-01-anatomed-mcp-selection\",\n        \"actor\": \"project owner\"\n      }\n    },\n    {\n      \"id\": \"input-code-cap-observation\",\n      \"text\": \"At revision 35ec3a711522abb33dda3f6a549c83fed9a27b23, assembleRegion caps focus parts but appends neighbor context afterward, while resolver.test.ts has no near-limit primed-neighbor regression.\",\n      \"provenance\": {\n        \"kind\": \"codebase_observation\",\n        \"observation_id\": \"observation-anatomed-region-cap\",\n        \"repository_revision\": \"35ec3a711522abb33dda3f6a549c83fed9a27b23\",\n        \"paths\": [\n          \"src/region.ts\",\n          \"src/neighbors.ts\",\n          \"test/resolver.test.ts\"\n        ]\n      }\n    },\n    {\n      \"id\": \"input-total-cap-required\",\n      \"text\": \"Every assembled region payload should contain at most MAX_REGION_PARTS total parts, including context.\",\n      \"provenance\": {\n        \"kind\": \"research_proposal\",\n        \"run_id\": \"run-9dc1ba80e2c5b5145cb46c0b\",\n        \"run_artifact_hash\": \"40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414\",\n        \"proposal_input_id\": \"input-total-cap-required\",\n        \"claim_id\": \"claim-total-cap-required\",\n        \"evidence_ids\": [\n          \"ev-readme-total-cap\",\n          \"ev-study-bounded\",\n          \"ev-max-constant\"\n        ]\n      }\n    },\n    {\n      \"id\": \"input-current-assembly-overflows\",\n      \"text\": \"assembleRegion caps focus parts at 60 but appends regional context without enforcing the remaining total capacity.\",\n      \"provenance\": {\n        \"kind\": \"research_proposal\",\n        \"run_id\": \"run-9dc1ba80e2c5b5145cb46c0b\",\n        \"run_artifact_hash\": \"40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414\",\n        \"proposal_input_id\": \"input-current-assembly-overflows\",\n        \"claim_id\": \"claim-current-assembly-overflows\",\n        \"evidence_ids\": [\n          \"ev-focus-only-cap\",\n          \"ev-context-uncapped-push\",\n          \"ev-neighbor-context-cap\"\n        ]\n      }\n    },\n    {\n      \"id\": \"input-regression-needed\",\n      \"text\": \"Regression tests should cover primed-neighbor regional assembly near the 60-part limit, including 40, 50, and 55 focus items.\",\n      \"provenance\": {\n        \"kind\": \"research_proposal\",\n        \"run_id\": \"run-9dc1ba80e2c5b5145cb46c0b\",\n        \"run_artifact_hash\": \"40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414\",\n        \"proposal_input_id\": \"input-regression-needed\",\n        \"claim_id\": \"claim-regression-needed\",\n        \"evidence_ids\": [\n          \"ev-tests-no-cap-regression\",\n          \"ev-context-uncapped-push\",\n          \"ev-max-constant\"\n        ]\n      }\n    }\n  ]\n}",
+        "content_sha256": "bc1de3beb50e5f4a3e012899ebded4ae5ae6332c8c62af2a9df3ae23dd31cada",
+        "provenance": "accepted-planning-inputs:inputs-anatomed-region-cap-v1"
+      },
+      {
+        "id": "ctx-plan",
+        "media_type": "application/json",
+        "content": "{\n  \"contract_version\": 1,\n  \"id\": \"plan-anatomed-region-cap\",\n  \"version\": 1,\n  \"input_set_id\": \"inputs-anatomed-region-cap-v1\",\n  \"goals\": [\n    {\n      \"id\": \"onboarding-control-state\",\n      \"version\": 1,\n      \"title\": \"Establish audited pre-execution control state\",\n      \"status\": \"completed\",\n      \"priority\": 1,\n      \"input_ids\": [\n        \"input-owner-selected-anatomed\",\n        \"input-code-cap-observation\",\n        \"input-total-cap-required\"\n      ],\n      \"recovery_attempts\": 0\n    },\n    {\n      \"id\": \"enforce-total-region-cap\",\n      \"version\": 1,\n      \"title\": \"Enforce a total 60-part region cap and add regression tests\",\n      \"status\": \"ready\",\n      \"priority\": 10,\n      \"input_ids\": [\n        \"input-code-cap-observation\",\n        \"input-total-cap-required\",\n        \"input-current-assembly-overflows\",\n        \"input-regression-needed\"\n      ],\n      \"recovery_attempts\": 0\n    },\n    {\n      \"id\": \"execute-region-cap-packet\",\n      \"version\": 1,\n      \"title\": \"Execute and independently evaluate the released region-cap packet\",\n      \"status\": \"planned\",\n      \"priority\": 20,\n      \"input_ids\": [\n        \"input-owner-selected-anatomed\",\n        \"input-regression-needed\"\n      ],\n      \"recovery_attempts\": 0\n    }\n  ],\n  \"dependencies\": [\n    {\n      \"goal_id\": \"enforce-total-region-cap\",\n      \"depends_on_goal_id\": \"onboarding-control-state\",\n      \"provenance\": {\n        \"kind\": \"declared\",\n        \"input_ids\": [\n          \"input-owner-selected-anatomed\",\n          \"input-total-cap-required\"\n        ]\n      }\n    },\n    {\n      \"goal_id\": \"execute-region-cap-packet\",\n      \"depends_on_goal_id\": \"enforce-total-region-cap\",\n      \"provenance\": {\n        \"kind\": \"observed\",\n        \"observation_input_id\": \"input-code-cap-observation\",\n        \"detail\": \"Execution depends on implementing the observed region assembly fix and regression coverage.\"\n      }\n    }\n  ],\n  \"recovery\": {\n    \"max_attempts_per_goal\": 2,\n    \"allowed_failed_transition\": \"blocked\"\n  }\n}",
+        "content_sha256": "ad1dcd6f44626d55a04a781188ffe6196024a8090ee19e5daab311fdf701bd6a",
+        "provenance": "goal-dag:plan-anatomed-region-cap@1"
+      }
+    ],
+    "constraints": [
+      "Modify only src/region.ts and test/resolver.test.ts.",
+      "Preserve MAX_REGION_PARTS = 60 and existing focus-before-context ordering.",
+      "Count focus and context together against the 60-part maximum.",
+      "Keep context deduplicated and never replace focus parts with context.",
+      "Do not modify package files, documentation, generated assets, or .mozak artifacts.",
+      "Do not use network access or add dependencies.",
+      "Run exactly: npm test -- --run, npm run typecheck, npm run build.",
+      "Do not claim success unless every acceptance condition has observed evidence."
+    ],
+    "dependencies": [
+      {
+        "id": "node-project-lock",
+        "version": "baseline-35ec3a711522abb33dda3f6a549c83fed9a27b23",
+        "digest": "885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac"
+      }
+    ],
+    "acceptance_conditions": [
+      {
+        "id": "AC-01",
+        "behavior": "assembleRegion returns at most 60 total parts for isolated, related, and regional detail.",
+        "required_evidence": "Automated assertions over payload.parts.length including regional 40/50/55 focus cases."
+      },
+      {
+        "id": "AC-02",
+        "behavior": "Regional assembly with primed neighbors returns exactly 60 total parts for 40, 50, and 55 focus items, retaining all focus items and filling only remaining capacity with context.",
+        "required_evidence": "Regression test observations of total, focus, and context counts for each case."
+      },
+      {
+        "id": "AC-03",
+        "behavior": "Existing resolver behavior remains unchanged.",
+        "required_evidence": "npm test -- --run passes."
+      },
+      {
+        "id": "AC-04",
+        "behavior": "The scoped implementation remains type-correct.",
+        "required_evidence": "npm run typecheck passes."
+      },
+      {
+        "id": "AC-05",
+        "behavior": "The production build succeeds.",
+        "required_evidence": "npm run build passes."
+      },
+      {
+        "id": "AC-06",
+        "behavior": "Only src/region.ts and test/resolver.test.ts change from the packet baseline.",
+        "required_evidence": "git diff --name-only 35ec3a711522abb33dda3f6a549c83fed9a27b23 names exactly the permitted changed files, excluding pre-existing .mozak control artifacts from execution output."
+      }
+    ],
+    "risks": [
+      "Truncating context incorrectly could drop focus structures or alter ordering.",
+      "Global primed-neighbor cache can make tests order-sensitive unless each regression primes deterministic data.",
+      "The packet expires and must be superseded if the project source baseline changes before execution."
+    ],
+    "freshness": {
+      "project_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "valid_after": "2026-09-01T10:44:00Z",
+      "expires_at": "2026-09-08T10:44:00Z"
+    }
+  },
+  "result": {
+    "contract_version": 1,
+    "id": "anatomed-enforce-total-region-cap-result-v1",
+    "packet": {
+      "id": "anatomed-enforce-total-region-cap",
+      "version": 1,
+      "packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e"
+    },
+    "executor": {
+      "id": "fresh-agent-gpt55-001",
+      "provider": "openai",
+      "adapter": "jcode-swarm"
+    },
+    "attempt": 1,
+    "started_at": "2026-09-01T11:00:11Z",
+    "completed_at": "2026-09-01T11:11:50Z",
+    "status": "succeeded",
+    "summary": "Executor commit 64a69a82 enforces MAX_REGION_PARTS as a total focus-plus-context cap and adds deterministic near-limit regression coverage; all declared tests, typecheck, build, and exact scoped-diff gates passed.",
+    "artifacts": [
+      {
+        "id": "artifact-executor-commit",
+        "kind": "git-commit",
+        "uri": "git://anatomed-mcp/commit/64a69a82d2636a446e517ef332e2dfcf913b4ef9",
+        "sha256": "03e458adca8a2788a799987e1550031d2d2c80875cb61c53d9ba23a3a4f4df0a",
+        "immutable": true
+      },
+      {
+        "id": "artifact-executor-tree",
+        "kind": "git-tree",
+        "uri": "git://anatomed-mcp/tree/1fcc184a2f57ad7fc9996ea4779e0a3ac95fd3dc",
+        "sha256": "dc2a9165051735a1b6c9e90c7efe01056e6e995ac1492d3577afe695eb30aa61",
+        "immutable": true
+      },
+      {
+        "id": "artifact-region-source",
+        "kind": "source-file",
+        "uri": "git://anatomed-mcp/blob/a873905e23cade3e57790b33c484fb4a33b0db01/src/region.ts",
+        "sha256": "452fea8d1aeee1e7210b878fb1bf2bf9bfc703893156b235d82c3fbf172da64a",
+        "immutable": true
+      },
+      {
+        "id": "artifact-resolver-tests",
+        "kind": "test-file",
+        "uri": "git://anatomed-mcp/blob/9e8cae45cdb4ab0802da8364119b49a1fceeb278/test/resolver.test.ts",
+        "sha256": "6416f625176a0f590f7513cc0ef6f71ac1a35badc137e7fe212657f92b4cb926",
+        "immutable": true
+      },
+      {
+        "id": "artifact-scoped-patch",
+        "kind": "git-diff",
+        "uri": "git://anatomed-mcp/diff/35ec3a711522abb33dda3f6a549c83fed9a27b23..64a69a82d2636a446e517ef332e2dfcf913b4ef9?paths=src/region.ts,test/resolver.test.ts",
+        "sha256": "036041a73262b14af03ec681562e6e3dd843658976f085a8956706430d80341a",
+        "immutable": true
+      },
+      {
+        "id": "artifact-command-evidence",
+        "kind": "execution-evidence",
+        "uri": ".mozak/execution/results/anatomed-enforce-total-region-cap-evidence-v1.json",
+        "sha256": "079f791c45044ff47997a5588934c3fa3b660a17fa09903a76cf3f08976ec3d7",
+        "immutable": true
+      }
+    ],
+    "validation_evidence": [
+      {
+        "id": "evidence-ac-01-total-cap",
+        "check": "AC-01 total cap at every detail level",
+        "observed": "npm test -- --run passed the assertion that isolated, related, and regional payloads with 60 focus parts each remain exactly MAX_REGION_PARTS (60) total parts.",
+        "artifact_ids": [
+          "artifact-executor-commit",
+          "artifact-region-source",
+          "artifact-resolver-tests",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-ac-02-near-limit",
+        "check": "AC-02 primed-neighbor regional 40/50/55 cases",
+        "observed": "The passing regression observes totals 60/60/60, focus counts 40/50/55 retained in original order, and context counts 20/10/5, filling only remaining capacity.",
+        "artifact_ids": [
+          "artifact-executor-commit",
+          "artifact-region-source",
+          "artifact-resolver-tests",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-ac-03-tests",
+        "check": "npm test -- --run",
+        "observed": "Exit 0 with 9 tests passed, 0 failed, 0 skipped, and 0 todo.",
+        "artifact_ids": [
+          "artifact-executor-tree",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-ac-04-typecheck",
+        "check": "npm run typecheck",
+        "observed": "Exit 0; tsc -p tsconfig.json --noEmit completed without diagnostics.",
+        "artifact_ids": [
+          "artifact-executor-tree",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-ac-05-build",
+        "check": "npm run build",
+        "observed": "Exit 0; Vite 6.4.3 transformed 599 modules and produced dist/index.html.",
+        "artifact_ids": [
+          "artifact-executor-tree",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-ac-06-scoped-diff",
+        "check": "exact scoped diff against packet baseline",
+        "observed": "Against freshness baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, the exact non-.mozak changed-file list is src/region.ts and test/resolver.test.ts; git diff --check passed. The released packet and pre-existing .mozak controls remain excluded from executor output.",
+        "artifact_ids": [
+          "artifact-executor-commit",
+          "artifact-scoped-patch",
+          "artifact-region-source",
+          "artifact-resolver-tests",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-dependency-lock",
+        "check": "declared Node project lock dependency",
+        "observed": "Observed Node v24.11.0 and npm 11.16.0 using unchanged package-lock.json SHA-256 885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac, exactly matching declared dependency node-project-lock.",
+        "artifact_ids": [
+          "artifact-executor-tree",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      },
+      {
+        "id": "evidence-packet-freshness",
+        "check": "packet baseline and freshness preservation",
+        "observed": "Packet v1 remains immutable at hash 714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e. Execution commit was recorded after valid_after and before expires_at; application diff is evaluated against project_revision 35ec3a711522abb33dda3f6a549c83fed9a27b23. No superseding packet or PF-0005 plan change was required.",
+        "artifact_ids": [
+          "artifact-executor-commit",
+          "artifact-scoped-patch",
+          "artifact-command-evidence"
+        ],
+        "passed": true
+      }
+    ],
+    "gates": [
+      {
+        "id": "gate-acceptance-conditions",
+        "evidence_ids": [
+          "evidence-ac-01-total-cap",
+          "evidence-ac-02-near-limit",
+          "evidence-ac-03-tests",
+          "evidence-ac-04-typecheck",
+          "evidence-ac-05-build",
+          "evidence-ac-06-scoped-diff"
+        ],
+        "passed": true
+      },
+      {
+        "id": "gate-declared-commands",
+        "evidence_ids": [
+          "evidence-ac-03-tests",
+          "evidence-ac-04-typecheck",
+          "evidence-ac-05-build",
+          "evidence-ac-06-scoped-diff"
+        ],
+        "passed": true
+      },
+      {
+        "id": "gate-packet-freshness",
+        "evidence_ids": [
+          "evidence-packet-freshness"
+        ],
+        "passed": true
+      }
+    ],
+    "observed_dependencies": [
+      {
+        "id": "node-project-lock",
+        "version": "baseline-35ec3a711522abb33dda3f6a549c83fed9a27b23; node-v24.11.0; npm-11.16.0",
+        "digest": "885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac",
+        "evidence_ids": [
+          "evidence-dependency-lock"
+        ]
+      }
+    ],
+    "failures": [],
+    "receipt": {
+      "procedure": "bounded-packet-execution-recording",
+      "procedure_version": "PF-0006/v1",
+      "input_packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e",
+      "capability_log": [
+        "read_repository",
+        "modify_scoped_files",
+        "run_declared_tests"
+      ],
+      "output_artifact_ids": [
+        "artifact-executor-commit",
+        "artifact-executor-tree",
+        "artifact-region-source",
+        "artifact-resolver-tests",
+        "artifact-scoped-patch",
+        "artifact-command-evidence"
+      ],
+      "result_sha256": "12e881d65af1cf6c22bba606d96b6880956e2cc1f1467e7610f4e0dcc504c535"
+    }
+  },
+  "evaluation": {
+    "contract_version": 1,
+    "id": "anatomed-enforce-total-region-cap-evaluation-v1",
+    "result_id": "anatomed-enforce-total-region-cap-result-v1",
+    "evaluator": {
+      "id": "independent-evaluator-gpt56sol-001",
+      "provider": "OpenAI",
+      "adapter": "gpt-5.6-sol via jcode-swarm"
+    },
+    "evaluated_at": "2026-09-01T11:22:53Z",
+    "condition_evaluations": [
+      {
+        "acceptance_condition_id": "AC-01",
+        "evidence_ids": [
+          "evidence-ac-01-total-cap",
+          "evidence-ac-03-tests"
+        ],
+        "observed": "Independent inspection found assembleRegion computes remainingCapacity as MAX_REGION_PARTS minus retained focus count, caps contextFor to the smaller of detail context cap and remaining capacity, and retains a defensive total-length break. An independent npm test -- --run rerun passed the regression asserting exactly 60 total parts for isolated, related, and regional detail with 60 focus parts.",
+        "passed": true
+      },
+      {
+        "acceptance_condition_id": "AC-02",
+        "evidence_ids": [
+          "evidence-ac-02-near-limit",
+          "evidence-ac-03-tests"
+        ],
+        "observed": "Independent inspection confirmed deterministic primed-neighbor cases for 40, 50, and 55 focus items assert total counts 60, retained focus counts 40/50/55 in original order, and context counts 20/10/5. The independent test rerun passed all assertions.",
+        "passed": true
+      },
+      {
+        "acceptance_condition_id": "AC-03",
+        "evidence_ids": [
+          "evidence-ac-03-tests"
+        ],
+        "observed": "Independent npm test -- --run rerun exited 0 with 9 tests passed, 0 failed, 0 cancelled, 0 skipped, and 0 todo, including all seven pre-existing resolver tests and both new cap regressions.",
+        "passed": true
+      },
+      {
+        "acceptance_condition_id": "AC-04",
+        "evidence_ids": [
+          "evidence-ac-04-typecheck"
+        ],
+        "observed": "Independent npm run typecheck rerun exited 0 with no TypeScript diagnostics. Its stdout and stderr SHA-256 digests exactly matched the recorded command evidence.",
+        "passed": true
+      },
+      {
+        "acceptance_condition_id": "AC-05",
+        "evidence_ids": [
+          "evidence-ac-05-build"
+        ],
+        "observed": "Independent npm run build rerun exited 0 using Vite 6.4.3, transformed 599 modules, and produced dist/index.html. The output digest varied only because the build transcript contains elapsed time; the substantive recorded observations matched.",
+        "passed": true
+      },
+      {
+        "acceptance_condition_id": "AC-06",
+        "evidence_ids": [
+          "evidence-ac-06-scoped-diff"
+        ],
+        "observed": "Independent git inspection verified executor commit 64a69a82d2636a446e517ef332e2dfcf913b4ef9 modifies exactly src/region.ts and test/resolver.test.ts. Against baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, the only non-.mozak paths are those same two files, and git diff --check exited 0.",
+        "passed": true
+      }
+    ],
+    "gate_evaluations": [
+      {
+        "gate_id": "gate-acceptance-conditions",
+        "evidence_ids": [
+          "evidence-ac-01-total-cap",
+          "evidence-ac-02-near-limit",
+          "evidence-ac-03-tests",
+          "evidence-ac-04-typecheck",
+          "evidence-ac-05-build",
+          "evidence-ac-06-scoped-diff"
+        ],
+        "passed": true
+      },
+      {
+        "gate_id": "gate-declared-commands",
+        "evidence_ids": [
+          "evidence-ac-03-tests",
+          "evidence-ac-04-typecheck",
+          "evidence-ac-05-build",
+          "evidence-ac-06-scoped-diff"
+        ],
+        "passed": true
+      },
+      {
+        "gate_id": "gate-packet-freshness",
+        "evidence_ids": [
+          "evidence-packet-freshness"
+        ],
+        "passed": true
+      }
+    ],
+    "claim": "passed",
+    "rationale": "The claim is passed because every packet acceptance condition and every recorded result gate has complete requirement-level traceability to passing recorded evidence and was independently corroborated. The evaluator reran all four declared command checks, inspected the exact executor diff and new assertions, verified packet, result, context, dependency, command-evidence, commit, tree, blob, and full-index scoped-patch hashes, confirmed the baseline and freshness window, and confirmed the evaluator identity differs from the executor by actor id and evaluation session even though both use the OpenAI provider. Test and build transcript hashes are timing-sensitive and therefore differed on rerun, but their exit status, counts, tool versions, module count, and produced artifact observations matched; typecheck and scoped-diff transcript hashes matched exactly. The production PF-0006 validate_bundle contract was also exercised with a temporary local harness and accepted this packet, result, and evaluation bundle. No application source, tests, released packet, recorded result, or MOZAK source was modified by the evaluator."
+  }
+}

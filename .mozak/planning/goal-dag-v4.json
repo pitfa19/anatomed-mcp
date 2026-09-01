@@ -1,0 +1,80 @@
+{
+  "contract_version": 1,
+  "id": "plan-anatomed-region-cap",
+  "version": 4,
+  "input_set_id": "inputs-anatomed-region-cap-v1",
+  "goals": [
+    {
+      "id": "onboarding-control-state",
+      "version": 4,
+      "title": "Establish audited pre-execution control state",
+      "status": "completed",
+      "priority": 1,
+      "input_ids": [
+        "input-owner-selected-anatomed",
+        "input-code-cap-observation",
+        "input-total-cap-required"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 3
+    },
+    {
+      "id": "enforce-total-region-cap",
+      "version": 4,
+      "title": "Enforce a total 60-part region cap and add regression tests",
+      "status": "completed",
+      "priority": 10,
+      "input_ids": [
+        "input-code-cap-observation",
+        "input-total-cap-required",
+        "input-current-assembly-overflows",
+        "input-regression-needed"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 3
+    },
+    {
+      "id": "execute-region-cap-packet",
+      "version": 4,
+      "title": "Execute and independently evaluate the released region-cap packet",
+      "status": "in_progress",
+      "priority": 20,
+      "input_ids": [
+        "input-owner-selected-anatomed",
+        "input-regression-needed"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 3
+    }
+  ],
+  "dependencies": [
+    {
+      "goal_id": "enforce-total-region-cap",
+      "depends_on_goal_id": "onboarding-control-state",
+      "provenance": {
+        "kind": "declared",
+        "input_ids": [
+          "input-owner-selected-anatomed",
+          "input-total-cap-required"
+        ]
+      }
+    },
+    {
+      "goal_id": "execute-region-cap-packet",
+      "depends_on_goal_id": "enforce-total-region-cap",
+      "provenance": {
+        "kind": "observed",
+        "observation_input_id": "input-code-cap-observation",
+        "detail": "Execution depends on implementing the observed region assembly fix and regression coverage."
+      }
+    }
+  ],
+  "recovery": {
+    "max_attempts_per_goal": 2,
+    "allowed_failed_transition": "blocked"
+  },
+  "supersedes": {
+    "id": "plan-anatomed-region-cap",
+    "version": 3
+  }
+}

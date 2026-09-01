@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "anatomed-pf-0008-contract-friction-v1",
+  "project_id": "anatomed-mcp",
+  "recorded_at": "2026-09-01T11:31:49Z",
+  "items": [
+    {
+      "id": "friction-timing-bearing-command-transcripts",
+      "disposition": "accepted",
+      "observation": "Test and Vite build command transcripts include elapsed-time values, so byte hashes can vary across honest reruns even when the executed behavior and outputs are equivalent.",
+      "decision": "Retain recorded transcript hashes as immutable evidence of the original execution. Accept the claims only when semantic observations are explicit and an independent evaluator reruns the commands and corroborates exit status, counts, versions, module count, and produced artifacts. Exact transcript equality is not claimed.",
+      "claim_boundary": "This accepts semantic corroboration plus independent reruns for timing-bearing transcripts. It does not weaken packet, result, source, commit, tree, blob, scoped-patch, evidence-file, typecheck transcript, or diff-check hash claims.",
+      "provenance": [
+        {
+          "uri": "repo:.mozak/execution/evaluations/anatomed-enforce-total-region-cap-evaluation-v1.json",
+          "sha256": "eb7418143f37dbe6c4a1c8814b147654309b0b044468acc6d4352a03cef43a1d",
+          "locator": "json:$.condition_evaluations[2:5],$.rationale"
+        },
+        {
+          "uri": "repo:.mozak/execution/results/anatomed-enforce-total-region-cap-evidence-v1.json",
+          "sha256": "079f791c45044ff47997a5588934c3fa3b660a17fa09903a76cf3f08976ec3d7",
+          "locator": "json:$"
+        }
+      ]
+    },
+    {
+      "id": "friction-sibling-path-integration-harness",
+      "disposition": "deferred",
+      "observation": "The current MOZAK onboarding_e2e harness discovers Anatomed through a repository-sibling path, which is representative on this checkout but not portable to arbitrary workspace layouts or packaged CI.",
+      "decision": "Keep the harness for PF-0008 acceptance because it exercises the real owner-selected repositories and committed chronology. Defer configurable fixture/workspace discovery to a successor portability packet.",
+      "claim_boundary": "PF-0008 proves this owner-selected sibling checkout workflow. It does not claim the harness is portable to unrelated directory layouts.",
+      "provenance": [
+        {
+          "uri": "git://mozak/commit/7f4e5c7/crates/mozak-cli/tests/onboarding_e2e.rs",
+          "sha256": "a1ebc98d99ba70a49ccdc149f0ae688f39fa959ba5d48b7f06e670c691c1c2da",
+          "locator": "symbol:anatomed_root"
+        }
+      ]
+    },
+    {
+      "id": "friction-project-specific-application-coupling",
+      "disposition": "rejected",
+      "observation": "The implementation could have changed Anatomed architecture or expanded application scope merely to simplify MOZAK onboarding.",
+      "decision": "Reject project-specific architecture coupling and any silent scope expansion. The executor change remains exactly src/region.ts and test/resolver.test.ts; closure adds control and release artifacts only.",
+      "claim_boundary": "No generic MOZAK contract is specialized to Anatomed application architecture.",
+      "provenance": [
+        {
+          "uri": "repo:.mozak/execution/results/anatomed-enforce-total-region-cap-result-v1.json",
+          "sha256": "8e48633f5d24a4ddc5b502b5de2b4f1057741f5de6ac77f6b5e5a9c33ab255a6",
+          "locator": "json:$.validation_evidence[5],$.artifacts"
+        }
+      ]
+    }
+  ]
+}

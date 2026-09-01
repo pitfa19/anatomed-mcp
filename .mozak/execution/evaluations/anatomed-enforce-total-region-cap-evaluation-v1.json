@@ -4,8 +4,8 @@
   "result_id": "anatomed-enforce-total-region-cap-result-v1",
   "evaluator": {
     "id": "independent-evaluator-gpt56sol-001",
-    "provider": "openai",
-    "adapter": "jcode-swarm"
+    "provider": "OpenAI",
+    "adapter": "gpt-5.6-sol via jcode-swarm"
   },
   "evaluated_at": "2026-09-01T11:22:53Z",
   "condition_evaluations": [

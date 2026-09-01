@@ -1,0 +1,78 @@
+{
+  "contract_version": 1,
+  "id": "inputs-anatomed-region-cap-v1",
+  "accepted_at": "2026-09-01T10:43:00Z",
+  "inputs": [
+    {
+      "id": "input-owner-selected-anatomed",
+      "text": "Use anatomed-mcp as the owner-selected first external Project Framework onboarding repository, preserving its application architecture and limiting pre-execution changes to .mozak control artifacts.",
+      "provenance": {
+        "kind": "human_decision",
+        "decision_id": "2026-09-01-anatomed-mcp-selection",
+        "actor": "project owner"
+      }
+    },
+    {
+      "id": "input-code-cap-observation",
+      "text": "At revision 35ec3a711522abb33dda3f6a549c83fed9a27b23, assembleRegion caps focus parts but appends neighbor context afterward, while resolver.test.ts has no near-limit primed-neighbor regression.",
+      "provenance": {
+        "kind": "codebase_observation",
+        "observation_id": "observation-anatomed-region-cap",
+        "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+        "paths": [
+          "src/region.ts",
+          "src/neighbors.ts",
+          "test/resolver.test.ts"
+        ]
+      }
+    },
+    {
+      "id": "input-total-cap-required",
+      "text": "Every assembled region payload should contain at most MAX_REGION_PARTS total parts, including context.",
+      "provenance": {
+        "kind": "research_proposal",
+        "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+        "run_artifact_hash": "40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414",
+        "proposal_input_id": "input-total-cap-required",
+        "claim_id": "claim-total-cap-required",
+        "evidence_ids": [
+          "ev-readme-total-cap",
+          "ev-study-bounded",
+          "ev-max-constant"
+        ]
+      }
+    },
+    {
+      "id": "input-current-assembly-overflows",
+      "text": "assembleRegion caps focus parts at 60 but appends regional context without enforcing the remaining total capacity.",
+      "provenance": {
+        "kind": "research_proposal",
+        "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+        "run_artifact_hash": "40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414",
+        "proposal_input_id": "input-current-assembly-overflows",
+        "claim_id": "claim-current-assembly-overflows",
+        "evidence_ids": [
+          "ev-focus-only-cap",
+          "ev-context-uncapped-push",
+          "ev-neighbor-context-cap"
+        ]
+      }
+    },
+    {
+      "id": "input-regression-needed",
+      "text": "Regression tests should cover primed-neighbor regional assembly near the 60-part limit, including 40, 50, and 55 focus items.",
+      "provenance": {
+        "kind": "research_proposal",
+        "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+        "run_artifact_hash": "40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414",
+        "proposal_input_id": "input-regression-needed",
+        "claim_id": "claim-regression-needed",
+        "evidence_ids": [
+          "ev-tests-no-cap-regression",
+          "ev-context-uncapped-push",
+          "ev-max-constant"
+        ]
+      }
+    }
+  ]
+}

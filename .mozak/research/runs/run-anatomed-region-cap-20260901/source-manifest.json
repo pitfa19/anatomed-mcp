@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+  "sources": [
+    {
+      "path": "README.md",
+      "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "sha256": "936665f930a647c93bd891a7f92f13be869acd8825c8b262b8028e8d86c50e42",
+      "excerpt_lines": {
+        "start": 48,
+        "end": 61
+      },
+      "excerpt_sha256": "73196c470b7b0ad12d9736d1ad7ac96d30013d17c561be7a52f2bd21a6368828"
+    },
+    {
+      "path": "docs/anatomy-study-research.md",
+      "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "sha256": "7bb1b0f69c487e789441ea2d69829b1762ec0e3ecaec9d084700f422fad6fc91",
+      "excerpt_lines": {
+        "start": 79,
+        "end": 86
+      },
+      "excerpt_sha256": "940d7cfc3e9b75523778dc31df206dd7ac3ec9d3545d90fbb912f29c4db18795"
+    },
+    {
+      "path": "src/region.ts",
+      "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "sha256": "7a2d82a2e54cf4c065d6d47d5674e8faf24e046ec953ddac65a8341a8caaa440",
+      "excerpt_lines": {
+        "start": 13,
+        "end": 152
+      },
+      "excerpt_sha256": "f8822c2b57bea83ae92e0b3cf35f48ee651fb82efd11e695ae6348d32ccdfbdb"
+    },
+    {
+      "path": "src/neighbors.ts",
+      "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "sha256": "89b7815293d47ecbf0843f80ced4e99da0af230daef48b2acd4264c4fc636ef3",
+      "excerpt_lines": {
+        "start": 25,
+        "end": 61
+      },
+      "excerpt_sha256": "6daac52ec92e2abe9e236319d9eebddfd88da4057a39ce9a2c5d86c78ce0d2c3"
+    },
+    {
+      "path": "test/resolver.test.ts",
+      "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "sha256": "e6d1f2e36cbb9ba555b13d271af66673972e8d785e542a23d7ba5386bbcaae1d",
+      "excerpt_lines": {
+        "start": 1,
+        "end": 62
+      },
+      "excerpt_sha256": "e6d1f2e36cbb9ba555b13d271af66673972e8d785e542a23d7ba5386bbcaae1d"
+    }
+  ]
+}

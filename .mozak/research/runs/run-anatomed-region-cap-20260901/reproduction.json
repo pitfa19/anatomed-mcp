@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "repository_revision": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+  "command": "npx tsx -e <offline synthetic catalog; primeNeighbors; assembleRegion regional for 40/50/55 focus items>",
+  "observations": [
+    {
+      "focus_parts": 40,
+      "context_parts": 30,
+      "total_parts": 70
+    },
+    {
+      "focus_parts": 50,
+      "context_parts": 30,
+      "total_parts": 80
+    },
+    {
+      "focus_parts": 55,
+      "context_parts": 30,
+      "total_parts": 85
+    }
+  ],
+  "expected_max_total_parts": 60,
+  "status": "reproduced",
+  "executed_at": "2026-09-01T10:42:01Z"
+}

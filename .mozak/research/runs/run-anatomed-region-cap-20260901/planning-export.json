@@ -1,0 +1,44 @@
+{
+  "contract_version": 1,
+  "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+  "run_artifact_hash": "40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414",
+  "authority": "proposal_only",
+  "inputs": [
+    {
+      "id": "input-current-assembly-overflows",
+      "claim_id": "claim-current-assembly-overflows",
+      "text": "assembleRegion caps focus parts at 60 but appends regional context without enforcing the remaining total capacity.",
+      "evidence_ids": [
+        "ev-focus-only-cap",
+        "ev-context-uncapped-push",
+        "ev-neighbor-context-cap"
+      ],
+      "confidence": "supported",
+      "accepted": false
+    },
+    {
+      "id": "input-regression-needed",
+      "claim_id": "claim-regression-needed",
+      "text": "Regression tests should cover primed-neighbor regional assembly near the 60-part limit, including 40, 50, and 55 focus items.",
+      "evidence_ids": [
+        "ev-tests-no-cap-regression",
+        "ev-context-uncapped-push",
+        "ev-max-constant"
+      ],
+      "confidence": "supported",
+      "accepted": false
+    },
+    {
+      "id": "input-total-cap-required",
+      "claim_id": "claim-total-cap-required",
+      "text": "Every assembled region payload should contain at most MAX_REGION_PARTS total parts, including context.",
+      "evidence_ids": [
+        "ev-readme-total-cap",
+        "ev-study-bounded",
+        "ev-max-constant"
+      ],
+      "confidence": "supported",
+      "accepted": false
+    }
+  ]
+}

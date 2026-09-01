@@ -1,0 +1,272 @@
+{
+  "contract_version": 1,
+  "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+  "created_at": "2026-09-01T10:42:00Z",
+  "source_profile": {
+    "version": 1,
+    "id": "source-anatomed-local-v1",
+    "allowed_schemes": [
+      "file"
+    ],
+    "max_records": 5,
+    "max_bytes_per_record": 20000,
+    "content_is_untrusted": true,
+    "may_authorize_actions": false
+  },
+  "pipeline": {
+    "version": 1,
+    "id": "pipeline-anatomed-region-cap-v1",
+    "revision": "56f7049b0877e71574f7c5a9f91324d8fc91ec32f7cd24f2c037c777eba5a89e",
+    "source_profile_id": "source-anatomed-local-v1",
+    "stages": [
+      {
+        "id": "stage-acquire",
+        "operation": "acquire"
+      },
+      {
+        "id": "stage-evidence",
+        "operation": "extract_evidence"
+      },
+      {
+        "id": "stage-gaps",
+        "operation": "identify_gaps"
+      },
+      {
+        "id": "stage-synthesis",
+        "operation": "synthesize"
+      },
+      {
+        "id": "stage-audit",
+        "operation": "audit"
+      },
+      {
+        "id": "stage-export",
+        "operation": "export_planning_inputs"
+      }
+    ],
+    "budgets": {
+      "max_sources": 5,
+      "max_raw_bytes": 50000,
+      "max_claims": 4,
+      "max_planning_inputs": 4
+    },
+    "required_artifacts": [
+      "scope",
+      "plan",
+      "raw_records",
+      "evidence",
+      "gaps",
+      "synthesis",
+      "audit",
+      "receipt"
+    ],
+    "output_authority": {
+      "planning_inputs_are_proposals": true,
+      "may_mutate_accepted_plans": false
+    }
+  },
+  "scope": {
+    "question": "Does assembleRegion enforce MAX_REGION_PARTS as a total payload cap after regional neighbor context is added?",
+    "included": [
+      "README.md product cap statement",
+      "anatomy-study-research bounded-context guidance",
+      "region assembly implementation",
+      "neighbor context implementation",
+      "existing resolver regression coverage",
+      "offline deterministic reproduction at baseline revision"
+    ],
+    "excluded": [
+      "application changes",
+      "network sources",
+      "whole-repository audit",
+      "execution of the proposed fix"
+    ]
+  },
+  "plan": {
+    "steps": [
+      "Snapshot five addressable local source excerpts and their full-file hashes",
+      "Extract byte-exact evidence for product intent, implementation behavior, and test coverage",
+      "Reproduce regional payload totals for 40, 50, and 55 focus items after primeNeighbors",
+      "Audit each synthesis claim and export supported findings as proposal-only planning inputs"
+    ],
+    "source_profile_id": "source-anatomed-local-v1",
+    "pipeline_id": "pipeline-anatomed-region-cap-v1"
+  },
+  "raw_records": [
+    {
+      "id": "raw-readme",
+      "source_uri": "file:README.md#L48-L61",
+      "media_type": "text/plain",
+      "acquired_at": "2026-09-01T10:42:00Z",
+      "content": "## How it works\n\n```\nClaude ──tools/call show_anatomy_region──▶  MCP server (this app)\n        ◀── structuredContent (region) ───   resolves a bounded set of parts\nClaude ──resources/read ui://… ──────────▶  serves the single-file widget HTML\n        └─ renders it in a sandboxed iframe; the widget fetches only the needed\n           GLBs from Supabase (whitelisted via _meta.ui.csp), isolates the region,\n           and draws the legend with per-structure toggles.\n```\n\nThe widget **never renders a whole body system**: always a bounded *region* (capped at\n`MAX_REGION_PARTS`). The `detail` parameter controls surrounding context:\n`isolated` (default) · `related` (nearest neighbours, translucent) · `regional` (wider context).\n",
+      "content_sha256": "73196c470b7b0ad12d9736d1ad7ac96d30013d17c561be7a52f2bd21a6368828",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-study-research",
+      "source_uri": "file:docs/anatomy-study-research.md#L79-L86",
+      "media_type": "text/plain",
+      "acquired_at": "2026-09-01T10:42:00Z",
+      "content": "10. **But working memory is finite — Cognitive Load Theory caps how much you should show at once.**\n    CLT distinguishes *intrinsic* load (inherent complexity), *extraneous* load (poor presentation),\n    and *germane* load (useful schema-building). Anatomy's value from 3D comes largely from cutting\n    the *extraneous* load of mentally rotating 2D into 3D — but a cluttered scene re-introduces\n    extraneous load. The regional approach itself \"requires you to have some understanding of at least\n    four different anatomical systems at the same time… That is *a lot* to digest, so good learning\n    materials that help you orient yourself… are essential.\" Design takeaway: bound the part count and\n    let the learner add context incrementally.\n",
+      "content_sha256": "940d7cfc3e9b75523778dc31df206dd7ac3ec9d3545d90fbb912f29c4db18795",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-region",
+      "source_uri": "file:src/region.ts#L13-L152",
+      "media_type": "text/plain",
+      "acquired_at": "2026-09-01T10:42:00Z",
+      "content": "/** Hard cap on focus structures. Enforces the product rule: always a bounded\n *  REGION, never the whole model. */\nexport const MAX_REGION_PARTS = 60;\n\n/** Per-detail-level context tuning: how many nearest neighbours to pull per\n *  focus part, and the total context cap. */\nconst DETAIL_TUNING: Record<RegionDetail, { perPart: number; cap: number }> = {\n  isolated: { perPart: 0, cap: 0 },\n  related: { perPart: 6, cap: 14 },\n  regional: { perPart: 14, cap: 30 },\n};\n\nexport interface BuildRegionResult {\n  payload: RegionPayload;\n  summary: string;\n}\n\nexport interface BuildRegionOptions {\n  title?: string;\n  detail?: RegionDetail;\n}\n\n/** Resolve queries into a bounded RegionPayload, optionally adding surrounding\n *  context structures (nearest neighbours) at higher detail levels. */\nexport function buildRegion(\n  catalog: PartsCatalog,\n  queries: string[],\n  assetBase: string,\n  opts: BuildRegionOptions = {},\n): BuildRegionResult {\n  const detail: RegionDetail = opts.detail ?? 'isolated';\n  const focus: RegionPart[] = [];\n  const seen = new Set<string>();\n  const unmatched: string[] = [];\n  const expanded: NonNullable<RegionPayload['expanded']> = [];\n  const issues: NonNullable<RegionPayload['issues']> = [];\n  let truncated = false;\n\n  for (const raw of queries) {\n    const query = (raw ?? '').trim();\n    if (!query) continue;\n    const resolved = resolveQueryToParts(catalog, query);\n    if (!resolved) {\n      unmatched.push(query);\n      continue;\n    }\n    if (resolved.issue) {\n      issues.push({ query, ...resolved.issue });\n      continue;\n    }\n    if (resolved.expanded) {\n      expanded.push({ query, label: resolved.expanded.label, count: resolved.expanded.count });\n    }\n    for (const p of resolved.parts) {\n      if (seen.has(p.id)) continue;\n      if (focus.length >= MAX_REGION_PARTS) {\n        truncated = true;\n        break;\n      }\n      seen.add(p.id);\n      focus.push({\n        id: p.id, // raw id — must match the GLB node name\n        name_en: cleanName(p.name_en),\n        name_lat: cleanName(p.name_lat),\n        system: p.system,\n        side: p.side,\n      });\n    }\n    if (truncated) break;\n  }\n\n  const payload = assembleRegion(catalog, focus, assetBase, {\n    detail,\n    title: opts.title,\n    unmatched,\n    expanded,\n    issues,\n  });\n\n  const focusCount = payload.parts.filter((p) => !p.context).length;\n  const contextCount = payload.parts.filter((p) => p.context).length;\n  const summary = buildSummary(payload, focusCount, contextCount, truncated);\n  return { payload, summary };\n}\n\nexport interface AssembleRegionOptions {\n  detail: RegionDetail;\n  title?: string;\n  unmatched?: string[];\n  expanded?: RegionPayload['expanded'];\n  issues?: RegionPayload['issues'];\n}\n\n/** Assemble a bounded RegionPayload from ALREADY-RESOLVED focus parts: dedupe + cap the\n *  focus, add surrounding context (nearest neighbours) for related/regional detail, and\n *  build the systems + title. Shared by buildRegion (server) and the widget's live\n *  client-side recompute (detail switch / add / remove). Focus parts are assumed already\n *  cleaned (see cleanName); only freshly-pulled context parts are cleaned here. */\nexport function assembleRegion(\n  catalog: PartsCatalog,\n  focusParts: RegionPart[],\n  assetBase: string,\n  opts: AssembleRegionOptions,\n): RegionPayload {\n  const detail = opts.detail;\n  const parts: RegionPart[] = [];\n  const seen = new Set<string>();\n\n  for (const p of focusParts) {\n    if (seen.has(p.id)) continue;\n    if (parts.length >= MAX_REGION_PARTS) break;\n    seen.add(p.id);\n    // Drop any stray context flag — these are focus structures.\n    parts.push({\n      id: p.id,\n      name_en: p.name_en,\n      name_lat: p.name_lat,\n      system: p.system,\n      side: p.side,\n    });\n  }\n\n  // Surrounding context (structures the focus parts pass through / near).\n  const focusIds = parts.map((p) => p.id);\n  const tuning = DETAIL_TUNING[detail];\n  if (tuning.perPart > 0 && focusIds.length > 0) {\n    const ctx = contextFor(catalog, focusIds, tuning.perPart, tuning.cap);\n    for (const p of ctx) {\n      if (seen.has(p.id)) continue;\n      seen.add(p.id);\n      parts.push({\n        id: p.id,\n        name_en: cleanName(p.name_en),\n        name_lat: cleanName(p.name_lat),\n        system: p.system,\n        side: p.side,\n        context: true,\n      });\n    }\n  }\n",
+      "content_sha256": "f8822c2b57bea83ae92e0b3cf35f48ee651fb82efd11e695ae6348d32ccdfbdb",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-neighbors",
+      "source_uri": "file:src/neighbors.ts#L25-L61",
+      "media_type": "text/plain",
+      "acquired_at": "2026-09-01T10:42:00Z",
+      "content": "/** Surrounding-context structures for a set of focus parts: the nearest\n *  precomputed neighbours (by AABB-to-AABB distance) across all systems —\n *  i.e. the structures each focus part passes through / runs near. Ranked by\n *  closest-to-any-focus, de-duped, excluding the focus set, capped.\n *  Returns [] if the neighbour map hasn't been primed yet. */\nexport function contextFor(\n  catalog: PartsCatalog,\n  focusIds: string[],\n  perPart: number,\n  cap: number,\n): Part[] {\n  const neighbors = cache ?? {};\n  const index = getPartIndex(catalog);\n  const focus = new Set(focusIds);\n\n  // neighbour id → best (smallest) rank across all focus parts\n  const bestRank = new Map<string, number>();\n  for (const fid of focusIds) {\n    const list = neighbors[fid];\n    if (!list) continue;\n    const take = list.slice(0, perPart);\n    take.forEach((n, rank) => {\n      if (focus.has(n.id)) return;\n      const prev = bestRank.get(n.id);\n      if (prev === undefined || rank < prev) bestRank.set(n.id, rank);\n    });\n  }\n\n  const ranked = [...bestRank.entries()].sort((a, b) => a[1] - b[1]);\n  const out: Part[] = [];\n  for (const [id] of ranked) {\n    const part = index.get(id);\n    if (!part) continue; // not in catalog (e.g. degenerate/\".g\")\n    out.push(part);\n    if (out.length >= cap) break;\n  }\n  return out;\n",
+      "content_sha256": "6daac52ec92e2abe9e236319d9eebddfd88da4057a39ce9a2c5d86c78ce0d2c3",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-resolver-tests",
+      "source_uri": "file:test/resolver.test.ts#L1-L62",
+      "media_type": "text/plain",
+      "acquired_at": "2026-09-01T10:42:00Z",
+      "content": "import assert from 'node:assert/strict';\nimport { readFileSync } from 'node:fs';\nimport test from 'node:test';\nimport { buildRegion } from '../src/region.js';\nimport type { PartsCatalog } from '../src/vendor/types.js';\n\nconst catalog = JSON.parse(readFileSync(new URL('../assets/parts-catalog.json', import.meta.url), 'utf8')) as PartsCatalog;\n\nfunction resolve(query: string) {\n  return buildRegion(catalog, [query], 'test', { detail: 'isolated' }).payload;\n}\n\ntest('generic carotid is declined as ambiguous instead of selecting a branch', () => {\n  const payload = resolve('carotid artery');\n  assert.equal(payload.parts.length, 0);\n  assert.deepEqual(payload.unmatched, []);\n  assert.equal(payload.issues?.[0]?.kind, 'ambiguous');\n  assert.match(payload.issues?.[0]?.message ?? '', /common, internal, or external/i);\n});\n\ntest('unsided carotid branches are declined instead of mixing sides', () => {\n  for (const query of ['common carotid artery', 'internal carotid artery', 'external carotid artery']) {\n    const payload = resolve(query);\n    assert.equal(payload.parts.length, 0);\n    assert.deepEqual(payload.unmatched, []);\n    assert.equal(payload.issues?.[0]?.kind, 'ambiguous');\n    assert.deepEqual(payload.issues?.[0]?.options?.map((option) => option.split(' ')[0]), ['left', 'right']);\n  }\n});\n\ntest('Latin Cor expands to heart chambers and never resolves to Cornea', () => {\n  const payload = resolve('Cor');\n  assert.deepEqual(new Set(payload.parts.map((part) => part.name_en)), new Set(['Right atrium', 'Left atrium', 'Right ventricle', 'Left ventricle']));\n  assert.equal(payload.parts.some((part) => part.name_en === 'Cornea'), false);\n  assert.equal(payload.expanded?.[0]?.label, 'Heart (four chambers)');\n});\n\ntest('heart expands to an explicit bounded four-chamber composite', () => {\n  const payload = resolve('heart');\n  assert.equal(payload.parts.length, 4);\n  assert.equal(payload.expanded?.[0]?.label, 'Heart (four chambers)');\n});\n\ntest('sternum expands to manubrium, body, and xiphoid process', () => {\n  const payload = resolve('sternum');\n  assert.deepEqual(new Set(payload.parts.map((part) => part.name_en)), new Set(['Manubrium of sternum', 'Body of sternum', 'Xiphoid process']));\n});\n\ntest('femoral neck and Latin synonym are explicitly unavailable', () => {\n  for (const query of ['femoral neck', 'neck of femur', 'Collum femoris']) {\n    const payload = resolve(query);\n    assert.equal(payload.parts.length, 0);\n    assert.equal(payload.issues?.[0]?.kind, 'unavailable');\n  }\n});\n\ntest('invented ligament remains unmatched without substitution', () => {\n  const payload = resolve('ligamentum pitlovicense');\n  assert.equal(payload.parts.length, 0);\n  assert.deepEqual(payload.unmatched, ['ligamentum pitlovicense']);\n  assert.equal(payload.issues, undefined);\n});\n",
+      "content_sha256": "e6d1f2e36cbb9ba555b13d271af66673972e8d785e542a23d7ba5386bbcaae1d",
+      "immutable": true,
+      "trust": "untrusted_data"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-readme-total-cap",
+      "raw_record_id": "raw-readme",
+      "byte_start": 525,
+      "byte_end": 632,
+      "quote": "The widget **never renders a whole body system**: always a bounded *region* (capped at\n`MAX_REGION_PARTS`).",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-study-bounded",
+      "raw_record_id": "raw-study-research",
+      "byte_start": 669,
+      "byte_end": 757,
+      "quote": "Design takeaway: bound the part count and\n    let the learner add context incrementally.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-max-constant",
+      "raw_record_id": "raw-region",
+      "byte_start": 116,
+      "byte_end": 151,
+      "quote": "export const MAX_REGION_PARTS = 60;",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-focus-only-cap",
+      "raw_record_id": "raw-region",
+      "byte_start": 3493,
+      "byte_end": 3537,
+      "quote": "if (parts.length >= MAX_REGION_PARTS) break;",
+      "stance": "context"
+    },
+    {
+      "id": "ev-context-uncapped-push",
+      "raw_record_id": "raw-region",
+      "byte_start": 4057,
+      "byte_end": 4156,
+      "quote": "for (const p of ctx) {\n      if (seen.has(p.id)) continue;\n      seen.add(p.id);\n      parts.push({",
+      "stance": "opposes"
+    },
+    {
+      "id": "ev-neighbor-context-cap",
+      "raw_record_id": "raw-neighbors",
+      "byte_start": 1251,
+      "byte_end": 1300,
+      "quote": "out.push(part);\n    if (out.length >= cap) break;",
+      "stance": "context"
+    },
+    {
+      "id": "ev-tests-no-cap-regression",
+      "raw_record_id": "raw-resolver-tests",
+      "byte_start": 2519,
+      "byte_end": 2591,
+      "quote": "test('invented ligament remains unmatched without substitution', () => {",
+      "stance": "context"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap-total-region-cap",
+      "description": "At baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, an offline synthetic catalog and primed neighbor map reproduce assembleRegion regional totals of 70, 80, and 85 for 40, 50, and 55 focus items. MAX_REGION_PARTS is 60, so the focus-only cap plus an independently capped context append violates the documented total-region cap. Existing resolver tests do not exercise assembleRegion with primed neighbors near the limit.",
+      "impact": "high"
+    }
+  ],
+  "synthesis": {
+    "summary": "The product and pedagogy documents require bounded total regions, but assembleRegion caps focus parts before appending up to 30 context parts without checking remaining total capacity. The gap is reproducible and regression coverage is absent.",
+    "claims": [
+      {
+        "id": "claim-total-cap-required",
+        "text": "Every assembled region payload should contain at most MAX_REGION_PARTS total parts, including context.",
+        "evidence_ids": [
+          "ev-readme-total-cap",
+          "ev-study-bounded",
+          "ev-max-constant"
+        ],
+        "status": "supported"
+      },
+      {
+        "id": "claim-current-assembly-overflows",
+        "text": "assembleRegion caps focus parts at 60 but appends regional context without enforcing the remaining total capacity.",
+        "evidence_ids": [
+          "ev-focus-only-cap",
+          "ev-context-uncapped-push",
+          "ev-neighbor-context-cap"
+        ],
+        "status": "supported"
+      },
+      {
+        "id": "claim-regression-needed",
+        "text": "Regression tests should cover primed-neighbor regional assembly near the 60-part limit, including 40, 50, and 55 focus items.",
+        "evidence_ids": [
+          "ev-tests-no-cap-regression",
+          "ev-context-uncapped-push",
+          "ev-max-constant"
+        ],
+        "status": "supported"
+      }
+    ],
+    "overall_claim": "supported"
+  },
+  "audit": {
+    "failures": [],
+    "audited_claim_ids": [
+      "claim-total-cap-required",
+      "claim-current-assembly-overflows",
+      "claim-regression-needed"
+    ]
+  },
+  "receipt": {
+    "run_id": "run-9dc1ba80e2c5b5145cb46c0b",
+    "pipeline_id": "pipeline-anatomed-region-cap-v1",
+    "pipeline_revision": "56f7049b0877e71574f7c5a9f91324d8fc91ec32f7cd24f2c037c777eba5a89e",
+    "adapter_id": "adapter-local-files-v1",
+    "started_at": "2026-09-01T10:42:00Z",
+    "finished_at": "2026-09-01T10:42:02Z",
+    "input_hash": "2e66ce859065dcceaac243c3bbad4c1fb0869e3231c3ca4acb0528f4555a1e8a",
+    "artifact_hash": "40f60c602edec9dcc552d4b93ac33dfc600bfff32249848c5515b2d560b15414",
+    "capabilities": [
+      "read_local_files",
+      "offline_reproduction",
+      "no_application_mutation"
+    ],
+    "status": "passed"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "format": "anatomed-execution-command-evidence-v1",
+  "packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e",
+  "packet_baseline": "35ec3a711522abb33dda3f6a549c83fed9a27b23",
+  "executor_commit": "64a69a82d2636a446e517ef332e2dfcf913b4ef9",
+  "executor_tree": "1fcc184a2f57ad7fc9996ea4779e0a3ac95fd3dc",
+  "recorded_at": "2026-09-01T11:11:50Z",
+  "commands": [
+    {
+      "id": "tests",
+      "command": "npm test -- --run",
+      "started_at": "2026-09-01T11:11:44Z",
+      "completed_at": "2026-09-01T11:11:44Z",
+      "exit_code": 0,
+      "stdout_sha256": "2fe3e2b73aa4d70529217704740490302d4ffe4638a85e0888d89569306d2908",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed": "Exit 0; 9 tests passed, 0 failed, including total-cap coverage for isolated/related/regional and regional focus counts 40/50/55."
+    },
+    {
+      "id": "typecheck",
+      "command": "npm run typecheck",
+      "started_at": "2026-09-01T11:11:44Z",
+      "completed_at": "2026-09-01T11:11:46Z",
+      "exit_code": 0,
+      "stdout_sha256": "b7a073a91b5048cf70ee40d9e97362a09e5ebb990154c767f29ab2ff32009d44",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed": "Exit 0; tsc -p tsconfig.json --noEmit completed without diagnostics."
+    },
+    {
+      "id": "build",
+      "command": "npm run build",
+      "started_at": "2026-09-01T11:11:46Z",
+      "completed_at": "2026-09-01T11:11:50Z",
+      "exit_code": 0,
+      "stdout_sha256": "97319d3ba350cf5ce407622010933aaf294e681d7f393009c9949675ad9105fe",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed": "Exit 0; Vite 6.4.3 transformed 599 modules and produced dist/index.html."
+    },
+    {
+      "id": "scoped-diff",
+      "command": "test exact changed-file list and git diff --check against 35ec3a711522abb33dda3f6a549c83fed9a27b23",
+      "started_at": "2026-09-01T11:11:50Z",
+      "completed_at": "2026-09-01T11:11:50Z",
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed": "Exit 0; non-.mozak changed-file list was exactly src/region.ts and test/resolver.test.ts; git diff --check passed."
+    }
+  ],
+  "runtime": {
+    "node": "v24.11.0",
+    "npm": "11.16.0",
+    "lockfile": "package-lock.json",
+    "lockfile_sha256": "885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac"
+  },
+  "changed_files": [
+    "src/region.ts",
+    "test/resolver.test.ts"
+  ]
+}

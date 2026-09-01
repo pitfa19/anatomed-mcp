@@ -1,0 +1,214 @@
+{
+  "contract_version": 1,
+  "id": "anatomed-enforce-total-region-cap-result-v1",
+  "packet": {
+    "id": "anatomed-enforce-total-region-cap",
+    "version": 1,
+    "packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e"
+  },
+  "executor": {
+    "id": "fresh-agent-gpt55-001",
+    "provider": "openai",
+    "adapter": "jcode-swarm"
+  },
+  "attempt": 1,
+  "started_at": "2026-09-01T11:00:11Z",
+  "completed_at": "2026-09-01T11:11:50Z",
+  "status": "succeeded",
+  "summary": "Executor commit 64a69a82 enforces MAX_REGION_PARTS as a total focus-plus-context cap and adds deterministic near-limit regression coverage; all declared tests, typecheck, build, and exact scoped-diff gates passed.",
+  "artifacts": [
+    {
+      "id": "artifact-executor-commit",
+      "kind": "git-commit",
+      "uri": "git://anatomed-mcp/commit/64a69a82d2636a446e517ef332e2dfcf913b4ef9",
+      "sha256": "03e458adca8a2788a799987e1550031d2d2c80875cb61c53d9ba23a3a4f4df0a",
+      "immutable": true
+    },
+    {
+      "id": "artifact-executor-tree",
+      "kind": "git-tree",
+      "uri": "git://anatomed-mcp/tree/1fcc184a2f57ad7fc9996ea4779e0a3ac95fd3dc",
+      "sha256": "dc2a9165051735a1b6c9e90c7efe01056e6e995ac1492d3577afe695eb30aa61",
+      "immutable": true
+    },
+    {
+      "id": "artifact-region-source",
+      "kind": "source-file",
+      "uri": "git://anatomed-mcp/blob/a873905e23cade3e57790b33c484fb4a33b0db01/src/region.ts",
+      "sha256": "452fea8d1aeee1e7210b878fb1bf2bf9bfc703893156b235d82c3fbf172da64a",
+      "immutable": true
+    },
+    {
+      "id": "artifact-resolver-tests",
+      "kind": "test-file",
+      "uri": "git://anatomed-mcp/blob/9e8cae45cdb4ab0802da8364119b49a1fceeb278/test/resolver.test.ts",
+      "sha256": "6416f625176a0f590f7513cc0ef6f71ac1a35badc137e7fe212657f92b4cb926",
+      "immutable": true
+    },
+    {
+      "id": "artifact-scoped-patch",
+      "kind": "git-diff",
+      "uri": "git://anatomed-mcp/diff/35ec3a711522abb33dda3f6a549c83fed9a27b23..64a69a82d2636a446e517ef332e2dfcf913b4ef9?paths=src/region.ts,test/resolver.test.ts",
+      "sha256": "036041a73262b14af03ec681562e6e3dd843658976f085a8956706430d80341a",
+      "immutable": true
+    },
+    {
+      "id": "artifact-command-evidence",
+      "kind": "execution-evidence",
+      "uri": ".mozak/execution/results/anatomed-enforce-total-region-cap-evidence-v1.json",
+      "sha256": "079f791c45044ff47997a5588934c3fa3b660a17fa09903a76cf3f08976ec3d7",
+      "immutable": true
+    }
+  ],
+  "validation_evidence": [
+    {
+      "id": "evidence-ac-01-total-cap",
+      "check": "AC-01 total cap at every detail level",
+      "observed": "npm test -- --run passed the assertion that isolated, related, and regional payloads with 60 focus parts each remain exactly MAX_REGION_PARTS (60) total parts.",
+      "artifact_ids": [
+        "artifact-executor-commit",
+        "artifact-region-source",
+        "artifact-resolver-tests",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-ac-02-near-limit",
+      "check": "AC-02 primed-neighbor regional 40/50/55 cases",
+      "observed": "The passing regression observes totals 60/60/60, focus counts 40/50/55 retained in original order, and context counts 20/10/5, filling only remaining capacity.",
+      "artifact_ids": [
+        "artifact-executor-commit",
+        "artifact-region-source",
+        "artifact-resolver-tests",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-ac-03-tests",
+      "check": "npm test -- --run",
+      "observed": "Exit 0 with 9 tests passed, 0 failed, 0 skipped, and 0 todo.",
+      "artifact_ids": [
+        "artifact-executor-tree",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-ac-04-typecheck",
+      "check": "npm run typecheck",
+      "observed": "Exit 0; tsc -p tsconfig.json --noEmit completed without diagnostics.",
+      "artifact_ids": [
+        "artifact-executor-tree",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-ac-05-build",
+      "check": "npm run build",
+      "observed": "Exit 0; Vite 6.4.3 transformed 599 modules and produced dist/index.html.",
+      "artifact_ids": [
+        "artifact-executor-tree",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-ac-06-scoped-diff",
+      "check": "exact scoped diff against packet baseline",
+      "observed": "Against freshness baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, the exact non-.mozak changed-file list is src/region.ts and test/resolver.test.ts; git diff --check passed. The released packet and pre-existing .mozak controls remain excluded from executor output.",
+      "artifact_ids": [
+        "artifact-executor-commit",
+        "artifact-scoped-patch",
+        "artifact-region-source",
+        "artifact-resolver-tests",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-dependency-lock",
+      "check": "declared Node project lock dependency",
+      "observed": "Observed Node v24.11.0 and npm 11.16.0 using unchanged package-lock.json SHA-256 885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac, exactly matching declared dependency node-project-lock.",
+      "artifact_ids": [
+        "artifact-executor-tree",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    },
+    {
+      "id": "evidence-packet-freshness",
+      "check": "packet baseline and freshness preservation",
+      "observed": "Packet v1 remains immutable at hash 714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e. Execution commit was recorded after valid_after and before expires_at; application diff is evaluated against project_revision 35ec3a711522abb33dda3f6a549c83fed9a27b23. No superseding packet or PF-0005 plan change was required.",
+      "artifact_ids": [
+        "artifact-executor-commit",
+        "artifact-scoped-patch",
+        "artifact-command-evidence"
+      ],
+      "passed": true
+    }
+  ],
+  "gates": [
+    {
+      "id": "gate-acceptance-conditions",
+      "evidence_ids": [
+        "evidence-ac-01-total-cap",
+        "evidence-ac-02-near-limit",
+        "evidence-ac-03-tests",
+        "evidence-ac-04-typecheck",
+        "evidence-ac-05-build",
+        "evidence-ac-06-scoped-diff"
+      ],
+      "passed": true
+    },
+    {
+      "id": "gate-declared-commands",
+      "evidence_ids": [
+        "evidence-ac-03-tests",
+        "evidence-ac-04-typecheck",
+        "evidence-ac-05-build",
+        "evidence-ac-06-scoped-diff"
+      ],
+      "passed": true
+    },
+    {
+      "id": "gate-packet-freshness",
+      "evidence_ids": [
+        "evidence-packet-freshness"
+      ],
+      "passed": true
+    }
+  ],
+  "observed_dependencies": [
+    {
+      "id": "node-project-lock",
+      "version": "baseline-35ec3a711522abb33dda3f6a549c83fed9a27b23; node-v24.11.0; npm-11.16.0",
+      "digest": "885c93dbe08c4a571db86c4be28807c6102c4a9bb5db15d98cc7e1cba6e590ac",
+      "evidence_ids": [
+        "evidence-dependency-lock"
+      ]
+    }
+  ],
+  "failures": [],
+  "receipt": {
+    "procedure": "bounded-packet-execution-recording",
+    "procedure_version": "PF-0006/v1",
+    "input_packet_hash": "714494692c441cf21e1301305b1b48b028f50f5be190e24e4019aea14cb77f3e",
+    "capability_log": [
+      "read_repository",
+      "modify_scoped_files",
+      "run_declared_tests"
+    ],
+    "output_artifact_ids": [
+      "artifact-executor-commit",
+      "artifact-executor-tree",
+      "artifact-region-source",
+      "artifact-resolver-tests",
+      "artifact-scoped-patch",
+      "artifact-command-evidence"
+    ],
+    "result_sha256": "12e881d65af1cf6c22bba606d96b6880956e2cc1f1467e7610f4e0dcc504c535"
+  }
+}

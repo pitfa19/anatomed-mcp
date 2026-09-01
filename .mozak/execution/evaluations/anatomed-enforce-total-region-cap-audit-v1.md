@@ -5,8 +5,8 @@
 **Passed with high confidence.** Executor commit `64a69a82d2636a446e517ef332e2dfcf913b4ef9` satisfies all six packet acceptance conditions, all three recorded result gates are independently corroborated, and the evaluator identity is independent from the executor.
 
 - Executor: `fresh-agent-gpt55-001` / `openai` / `jcode-swarm`
-- Evaluator: `independent-evaluator-fable5-001` / `anthropic` / `jcode-swarm`
-- Identity comparison: different id, different provider, different full identity
+- Evaluator: `independent-evaluator-gpt56sol-001` / `openai` / `jcode-swarm`
+- Identity comparison: different actor id and evaluation session, shared OpenAI provider, different full identity
 
 ## Scope and implementation inspection
 

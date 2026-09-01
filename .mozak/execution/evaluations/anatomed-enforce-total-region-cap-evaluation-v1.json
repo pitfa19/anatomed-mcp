@@ -1,0 +1,96 @@
+{
+  "contract_version": 1,
+  "id": "anatomed-enforce-total-region-cap-evaluation-v1",
+  "result_id": "anatomed-enforce-total-region-cap-result-v1",
+  "evaluator": {
+    "id": "independent-evaluator-fable5-001",
+    "provider": "anthropic",
+    "adapter": "jcode-swarm"
+  },
+  "evaluated_at": "2026-09-01T11:22:53Z",
+  "condition_evaluations": [
+    {
+      "acceptance_condition_id": "AC-01",
+      "evidence_ids": [
+        "evidence-ac-01-total-cap",
+        "evidence-ac-03-tests"
+      ],
+      "observed": "Independent inspection found assembleRegion computes remainingCapacity as MAX_REGION_PARTS minus retained focus count, caps contextFor to the smaller of detail context cap and remaining capacity, and retains a defensive total-length break. An independent npm test -- --run rerun passed the regression asserting exactly 60 total parts for isolated, related, and regional detail with 60 focus parts.",
+      "passed": true
+    },
+    {
+      "acceptance_condition_id": "AC-02",
+      "evidence_ids": [
+        "evidence-ac-02-near-limit",
+        "evidence-ac-03-tests"
+      ],
+      "observed": "Independent inspection confirmed deterministic primed-neighbor cases for 40, 50, and 55 focus items assert total counts 60, retained focus counts 40/50/55 in original order, and context counts 20/10/5. The independent test rerun passed all assertions.",
+      "passed": true
+    },
+    {
+      "acceptance_condition_id": "AC-03",
+      "evidence_ids": [
+        "evidence-ac-03-tests"
+      ],
+      "observed": "Independent npm test -- --run rerun exited 0 with 9 tests passed, 0 failed, 0 cancelled, 0 skipped, and 0 todo, including all seven pre-existing resolver tests and both new cap regressions.",
+      "passed": true
+    },
+    {
+      "acceptance_condition_id": "AC-04",
+      "evidence_ids": [
+        "evidence-ac-04-typecheck"
+      ],
+      "observed": "Independent npm run typecheck rerun exited 0 with no TypeScript diagnostics. Its stdout and stderr SHA-256 digests exactly matched the recorded command evidence.",
+      "passed": true
+    },
+    {
+      "acceptance_condition_id": "AC-05",
+      "evidence_ids": [
+        "evidence-ac-05-build"
+      ],
+      "observed": "Independent npm run build rerun exited 0 using Vite 6.4.3, transformed 599 modules, and produced dist/index.html. The output digest varied only because the build transcript contains elapsed time; the substantive recorded observations matched.",
+      "passed": true
+    },
+    {
+      "acceptance_condition_id": "AC-06",
+      "evidence_ids": [
+        "evidence-ac-06-scoped-diff"
+      ],
+      "observed": "Independent git inspection verified executor commit 64a69a82d2636a446e517ef332e2dfcf913b4ef9 modifies exactly src/region.ts and test/resolver.test.ts. Against baseline 35ec3a711522abb33dda3f6a549c83fed9a27b23, the only non-.mozak paths are those same two files, and git diff --check exited 0.",
+      "passed": true
+    }
+  ],
+  "gate_evaluations": [
+    {
+      "gate_id": "gate-acceptance-conditions",
+      "evidence_ids": [
+        "evidence-ac-01-total-cap",
+        "evidence-ac-02-near-limit",
+        "evidence-ac-03-tests",
+        "evidence-ac-04-typecheck",
+        "evidence-ac-05-build",
+        "evidence-ac-06-scoped-diff"
+      ],
+      "passed": true
+    },
+    {
+      "gate_id": "gate-declared-commands",
+      "evidence_ids": [
+        "evidence-ac-03-tests",
+        "evidence-ac-04-typecheck",
+        "evidence-ac-05-build",
+        "evidence-ac-06-scoped-diff"
+      ],
+      "passed": true
+    },
+    {
+      "gate_id": "gate-packet-freshness",
+      "evidence_ids": [
+        "evidence-packet-freshness"
+      ],
+      "passed": true
+    }
+  ],
+  "claim": "passed",
+  "rationale": "The claim is passed because every packet acceptance condition and every recorded result gate has complete requirement-level traceability to passing recorded evidence and was independently corroborated. The evaluator reran all four declared command checks, inspected the exact executor diff and new assertions, verified packet, result, context, dependency, command-evidence, commit, tree, blob, and full-index scoped-patch hashes, confirmed the baseline and freshness window, and confirmed the evaluator identity differs from the executor in both id and provider. Test and build transcript hashes are timing-sensitive and therefore differed on rerun, but their exit status, counts, tool versions, module count, and produced artifact observations matched; typecheck and scoped-diff transcript hashes matched exactly. The production PF-0006 validate_bundle contract was also exercised with a temporary local harness and accepted this packet, result, and evaluation bundle. No application source, tests, released packet, recorded result, or MOZAK source was modified by the evaluator."
+}

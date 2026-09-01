@@ -3,8 +3,8 @@
   "id": "anatomed-enforce-total-region-cap-evaluation-v1",
   "result_id": "anatomed-enforce-total-region-cap-result-v1",
   "evaluator": {
-    "id": "independent-evaluator-fable5-001",
-    "provider": "anthropic",
+    "id": "independent-evaluator-gpt56sol-001",
+    "provider": "openai",
     "adapter": "jcode-swarm"
   },
   "evaluated_at": "2026-09-01T11:22:53Z",
@@ -92,5 +92,5 @@
     }
   ],
   "claim": "passed",
-  "rationale": "The claim is passed because every packet acceptance condition and every recorded result gate has complete requirement-level traceability to passing recorded evidence and was independently corroborated. The evaluator reran all four declared command checks, inspected the exact executor diff and new assertions, verified packet, result, context, dependency, command-evidence, commit, tree, blob, and full-index scoped-patch hashes, confirmed the baseline and freshness window, and confirmed the evaluator identity differs from the executor in both id and provider. Test and build transcript hashes are timing-sensitive and therefore differed on rerun, but their exit status, counts, tool versions, module count, and produced artifact observations matched; typecheck and scoped-diff transcript hashes matched exactly. The production PF-0006 validate_bundle contract was also exercised with a temporary local harness and accepted this packet, result, and evaluation bundle. No application source, tests, released packet, recorded result, or MOZAK source was modified by the evaluator."
+  "rationale": "The claim is passed because every packet acceptance condition and every recorded result gate has complete requirement-level traceability to passing recorded evidence and was independently corroborated. The evaluator reran all four declared command checks, inspected the exact executor diff and new assertions, verified packet, result, context, dependency, command-evidence, commit, tree, blob, and full-index scoped-patch hashes, confirmed the baseline and freshness window, and confirmed the evaluator identity differs from the executor by actor id and evaluation session even though both use the OpenAI provider. Test and build transcript hashes are timing-sensitive and therefore differed on rerun, but their exit status, counts, tool versions, module count, and produced artifact observations matched; typecheck and scoped-diff transcript hashes matched exactly. The production PF-0006 validate_bundle contract was also exercised with a temporary local harness and accepted this packet, result, and evaluation bundle. No application source, tests, released packet, recorded result, or MOZAK source was modified by the evaluator."
 }

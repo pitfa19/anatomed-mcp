@@ -1,0 +1,262 @@
+{
+  "contract_version": 1,
+  "run_id": "run-e3720afcc7fe6f50fabe0079",
+  "created_at": "2026-09-02T03:40:00Z",
+  "source_profile": {
+    "version": 1,
+    "id": "source-anatomed-paper-local-v1",
+    "allowed_schemes": [
+      "file"
+    ],
+    "max_records": 3,
+    "max_bytes_per_record": 20000,
+    "content_is_untrusted": true,
+    "may_authorize_actions": false
+  },
+  "pipeline": {
+    "version": 1,
+    "id": "pipeline-anatomed-paper-context-v1",
+    "revision": "10863acf8cce846d4e823ea0b4b992e7b6856fde0c95d4dab27e4e0cd5b2f031",
+    "source_profile_id": "source-anatomed-paper-local-v1",
+    "stages": [
+      {
+        "id": "stage-acquire",
+        "operation": "acquire"
+      },
+      {
+        "id": "stage-evidence",
+        "operation": "extract_evidence"
+      },
+      {
+        "id": "stage-gaps",
+        "operation": "identify_gaps"
+      },
+      {
+        "id": "stage-synthesis",
+        "operation": "synthesize"
+      },
+      {
+        "id": "stage-audit",
+        "operation": "audit"
+      },
+      {
+        "id": "stage-export",
+        "operation": "export_planning_inputs"
+      }
+    ],
+    "budgets": {
+      "max_sources": 3,
+      "max_raw_bytes": 50000,
+      "max_claims": 4,
+      "max_planning_inputs": 4
+    },
+    "required_artifacts": [
+      "scope",
+      "plan",
+      "raw_records",
+      "evidence",
+      "gaps",
+      "synthesis",
+      "audit",
+      "receipt"
+    ],
+    "output_authority": {
+      "planning_inputs_are_proposals": true,
+      "may_mutate_accepted_plans": false
+    }
+  },
+  "scope": {
+    "question": "What finished Anatomed paper claims, evidence boundaries, and future directions should be available as project context to anatomed-mcp agents?",
+    "included": [
+      "authoritative manuscript sections from abstract through conclusions",
+      "rendered-paper mentor-comment acceptance verification",
+      "cross-provider benchmark interpretation and claim limits",
+      "source revision and immutable file hashes"
+    ],
+    "excluded": [
+      "copying the full Obsidian workspace into anatomed-mcp",
+      "treating paper prose as operational instructions",
+      "claims of anatomical correctness, learning benefit, examination performance, or patient safety",
+      "automatic synchronization after the pinned source revision"
+    ]
+  },
+  "plan": {
+    "steps": [
+      "Pin the committed paper sources and final PDF by revision and SHA-256",
+      "Extract byte-exact evidence for system commitments, benchmark outcomes, acceptance closure, and future note integration",
+      "Synthesize a compact project-local context note with explicit claim boundaries",
+      "Audit every imported claim and export only supported or qualified planning inputs"
+    ],
+    "source_profile_id": "source-anatomed-paper-local-v1",
+    "pipeline_id": "pipeline-anatomed-paper-context-v1"
+  },
+  "raw_records": [
+    {
+      "id": "raw-paper-manuscript",
+      "source_uri": "file:/home/pitfa/Documents/obsidian/rector_award/anatomed-paper/paper/manuscript.md#L19-L79",
+      "media_type": "text/markdown",
+      "acquired_at": "2026-09-02T03:40:00Z",
+      "content": "## Abstract\n\nMedical students learn anatomy spatially, while fluent but ungrounded chatbot claims may foster misconceptions or incomplete concept mastery. We present Anatomed MCP, a bounded 3D anatomy backend developed by an interdisciplinary engineering and medical team. Its vendor-neutral protocol requires resolution or decline, constructs question-appropriate context and separates visible evidence from inference. On seeded resolver queries and two agent environments, the tested resolver made no wrong substitutions. We designed and froze a spatial-explanation skill that improved concordant tool use; unsafe substitutions seen with direct access were absent with the skill. The evaluation addresses deployability, tested resolver safety and workflow adherence, not anatomical correctness or learning outcomes. Future integration with anatomy-specific note knowledge bases could combine broader context with inspectable 3D views.\n\n**Keywords.** Medical Education; Human Anatomy Learning; Artificial Intelligence; Computer-Assisted Instruction\n\n---\n\n## 1. Introduction\n\nMedical curricula face growing content and reduced anatomy contact time [1,2], while cadaveric access remains uneven [3]. Learning and mastery of human anatomy depend on spatial relationships and working-memory demands [4,5]. Students increasingly use conversational AI [6,7], but fluent explanations may contain invented detail that fosters misconceptions or incomplete learning [8]. Interactivity moderates the value of three-dimensional (3D) resources [9-11]. A recent trial of an AI anatomy tutor with a knowledge graph reported learning gains [12], motivating complementary evaluation of technical grounding and response accuracy. Anatomed addresses this layer by defining how agents resolve ambiguity, bound spatial context and distinguish visible evidence from inference.\n\nWe investigated whether a frozen spatial-explanation protocol improves protocol-concordant use of a bounded 3D anatomy tool across two agent products. Our contribution is an anatomy-specific evidence boundary combining deterministic resolution or decline, bounded scene construction and a vendor-neutral protocol. It establishes inspectable spatial tool use as a foundation for future personalised-learning studies.\n\n## 2. Methods\n\n### 2.1. Design Commitments\n\nFour commitments guided implementation. **Authorized substrate:** displayed anatomy comes from a curated catalogue, and unresolved targets are declined rather than replaced. **Bounded context:** the system starts with an isolated structure and adds related or regional context only when required [5]. **Interactive inspection:** rotation, zoom, isolation and system toggles support active spatial examination [10,11]. **Tool-governed explanation:** the agent renders before explaining, uses anatomical axes and distinguishes visible evidence from unsupported functional claims.\n\n### 2.2. Backend and Surfaces\n\nThe catalogue contains 3,534 addressable structures derived from Z-Anatomy [13] and BodyParts3D [14] under compatible Creative Commons Attribution-ShareAlike (CC BY-SA) terms. A remote MCP server [15] accepts a target and detail level, resolves or declines the query and returns a bounded region for inline 3D rendering. We reused the catalogue and viewer in an official Obsidian community plugin, providing a second surface for persistent anatomy notes and inspection.\n\n### 2.3. Spatial-Explanation Protocol\n\nFor a spatial anatomy question, the protocol requires a tool call before explanation. It begins with isolated detail, escalates to related context for adjacency or course questions and uses regional context only for broader walkthroughs. The response names and orients the rendered focus, limits spatial claims to visible or separately cited evidence and states backend limits.\n\n### 2.4. Agent Benchmark\n\nWe froze a balanced 24-prompt blueprint with four items in each of six domains: identification, spatial relations, context escalation, ambiguity or absence, clinical-spatial questions and unsupported function. Examples included \"Show me the femur in 3D\" and the nonexistent \"ligamentum pitlovicense.\" Test blueprinting linked intended domains, coverage and item selection [16]. The first three domains represented ordinary spatial requests; the latter three tested evidence-boundary decisions. Items were not used to tune the resolver and specified the expected tool decision, minimum detail, acceptable targets and evidence-limit flags.\n\nSeven Codex CLI and three Claude Code configurations were tested model-only, with Anatomed alone and with Anatomed plus the frozen skill. The skill added explicit resolution, context-selection and evidence-boundary rules to the native tool description. Each condition used three fresh-session repetitions; both adapters preserved prompts, condition text, backend revision and a vendor-neutral trace schema. Reasoning effort was medium where supported; a common numerical temperature was unavailable. Each run was scored pass or fail. A pass required the expected tool decision and, after a call, an accepted target, sufficient context and no unsafe substitution. Without-skill and with-skill runs were matched by model, prompt and repetition; intervals used model-prompt cluster resampling. Protocol concordance was the percentage of passing runs.\n\n## 3. Results\n\n### 3.1. Platform Status and Content Configuration\n\nThe MCP connector renders inline 3D anatomy, and the Obsidian plugin passed community review [17]. Requests may specify a structure, region or composite; composites expand multi-part terms rather than return a misleading subpart.\n\n### 3.2. Resolver Safety\n\nAfter initial tuning, a seeded held-out set mixed canonical names, misspellings, unlisted lay terms and absent structures. One label was corrected because *Appendix* and *Vermiform appendix* were equivalent; the unchanged set was rerun. The outcome was 86 correct resolutions, 14 declines and no wrong substitutions. Coverage remains bounded by the tested vocabulary.\n\n### 3.3. Agent Behavior\n\nAdding the skill increased complete-workflow pass rates from 60.7% to 81.3% for Codex and from 78.7% to 90.7% for Claude, corresponding to matched improvements of 20.6 percentage points (95% interval 14.3-27.0) and 12.0 points (5.6-19.4), respectively (Figure 2).\n\nAn unsafe substitution returned a plausible wrong structure instead of declining. The predefined rule found 3/63 Codex cases without the skill and none with it. Expanded review including unsided-carotid cases found 6/63 for Codex and 1/27 for Claude without the skill, versus zero with it. This post-hoc rule remained separate from the primary endpoint and prompted a later resolver patch; results remain tied to the frozen pre-patch revision.\n\nThree blinded second-year medical-student raters, who had completed first-year anatomy approximately 12 months earlier, found the sample generally correct, spatially useful and evidence-bounded, with no unsafe substitutions. This small, non-representative panel is preliminary: quality showed no consistent with-skill advantage and agreement was mixed.\n\n## 4. Discussion\n\nAnatomed MCP converts a learner's question into bounded, inspectable 3D evidence while declining unresolved targets. Across the tested agent products, the spatial-explanation skill improved workflow reliability. These findings support technical feasibility for educational use but do not demonstrate learning benefits.\n\nIntegration with anatomy-specific notes could combine conceptual, functional and clinical material with inspectable spatial evidence while preserving the query, explanation, render, provenance and evidence limits. A randomized, counterbalanced crossover study should compare Anatomed-assisted and comparator learning on matched topics, measuring comprehension, spatial transfer, retention, cognitive load and usefulness while controlling between-student differences.\n\n## 5. Conclusions and Future Work\n\nAnatomed provides a deployable bounded 3D evidence layer with safe tested-set resolution and more reliable tool use with the skill, but no demonstrated learning benefit. Next steps are note integration and a randomized crossover study; effects on examination performance or patient safety remain untested.\n",
+      "content_sha256": "ac5097dd2a912c47323f8578224bd86a3950327c6dc6cc301fd8607da44bba40",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-paper-acceptance",
+      "source_uri": "file:/home/pitfa/Documents/obsidian/rector_award/anatomed-paper/workspace/mentor-comments-v2-resolution.md#L46-L55",
+      "media_type": "text/markdown",
+      "acquired_at": "2026-09-02T03:40:00Z",
+      "content": "## Acceptance verification, 24 August 2026\n\nThe workflow was re-run from the original reviewer artifact through the rendered paper rather than relying only on source inspection.\n\n- **Reviewer-source boundary:** programmatic extraction from `/home/pitfa/Downloads/Anatomed_MCP v2.pdf` returned exactly **13 text annotations**, all authored by `miros`, on pages 1, 2, 3 and 5. These correspond one-to-one with rows 1–13 above. The annotated source PDF was not modified.\n- **Requirement traceability:** normalized text extracted from the rebuilt `Anatomed_MCP.pdf` was checked for concrete evidence for every row. All **13/13** mentor-comment checks passed, including the two-part checks for the designed skill, preliminary student panel and bounded future claims.\n- **Structure and metadata:** the rendered PDF contains Introduction, Methods, Results, Discussion, Conclusions and Future Work, and References; all three ORCIDs, both supplied e-mail addresses and Miroslav Končar's final spelling were found in rendered text.\n- **Submission constraints checked here:** `pdfinfo` reports **5 pages**, A4 size (`595.28 × 841.89 pt`), PDF 1.5. The abstract contains **120 words**, within the 150-word limit. Both figures and all 17 references remain present.\n- **Rendering boundary:** all five pages were rasterized through Poppler at 120 dpi. Each produced a nonblank A4 portrait image, and a five-page contact-sheet inspection found no blank, missing, clipped or overlapping page-level content. Embedded fonts were confirmed with `pdffonts`.\n- **Known boundary:** this closes the mentor-comment audit for the current LaTeX/PDF manuscript. It does not certify the final conference `.docx` template conversion, which remains a separate submission-packaging step once the official portal template is available.\n",
+      "content_sha256": "2436e26d1405b8c8b8f5ef29c2141cdace69f5a19d1f52c9b250a9d96e0a82cd",
+      "immutable": true,
+      "trust": "untrusted_data"
+    },
+    {
+      "id": "raw-paper-benchmark",
+      "source_uri": "file:/home/pitfa/Documents/obsidian/rector_award/anatomed-paper/benchmark/results/cross-provider-v02.md#L5-L49",
+      "media_type": "text/markdown",
+      "acquired_at": "2026-09-02T03:40:00Z",
+      "content": "## Primary automated endpoint\n\n| Provider | Models | Condition | n | Protocol success | Tool decision | Unsafe substitution |\n|---|---:|---|---:|---:|---:|---:|\n| OpenAI Codex CLI | 7 | tool-neutral | 504 | 60.7% | 72.6% | 4.8% |\n| OpenAI Codex CLI | 7 | tool-skill | 504 | 81.3% | 83.9% | 0.0% |\n| Anthropic Claude Code | 3 | tool-neutral | 216 | 78.7% | 89.8% | 0.0% |\n| Anthropic Claude Code | 3 | tool-skill | 216 | 90.7% | 95.8% | 0.0% |\n\n## Paired protocol-guidance effect and repetition stability\n\n| Provider | Skill minus neutral | Cluster-bootstrap 95% interval | Model-item clusters | Effects by repetition |\n|---|---:|---:|---:|---|\n| OpenAI Codex CLI | +20.6 pp | +14.3 pp to +27.0 pp | 168 | +17.3 pp, +19.6 pp, +25.0 pp |\n| Anthropic Claude Code | +12.0 pp | +5.6 pp to +19.4 pp | 72 | +11.1 pp, +11.1 pp, +13.9 pp |\n\nThe deterministic percentile bootstrap resamples paired model-item clusters and retains all three repetitions and both tool conditions within each sampled cluster (10,000 draws; seeds 20260807 and 20260808). It describes uncertainty across this prompt/model panel; it is not a population-level estimate for all anatomy questions or models.\n\n## Safety audit\n\n| Provider | Condition | Predefined trace rule | Residual unsided-carotid cases | Expanded audited rate |\n|---|---|---:|---:|---:|\n| OpenAI Codex CLI | tool-neutral | 3/63 (4.8%) | 3 | 6/63 (9.5%) |\n| OpenAI Codex CLI | tool-skill | 0/63 (0.0%) | 0 | 0/63 (0.0%) |\n| Anthropic Claude Code | tool-neutral | 0/27 (0.0%) | 1 | 1/27 (3.7%) |\n| Anthropic Claude Code | tool-skill | 0/27 (0.0%) | 0 | 0/27 (0.0%) |\n\nThe predefined rule detected three neutral-condition substitutions after an invented ligament returned unmatched. Manual review of all A01, A03 and A04 traces found four additional neutral-condition cells in which an agent changed the generic carotid request to unsided branch names and the benchmark backend rendered a single or mixed side. No protocol-guided cell had either failure. This residual rule was added after inspecting the frozen traces, so it is reported transparently as an expanded audit rather than folded into the primary endpoint. The backend was subsequently hardened and regression-tested, but these runs remain pinned to the evaluated revision.\n\n## Evidence-boundary diagnostics\n\n| Provider | Condition | Catalogue-limit acknowledgement | Functional-evidence acknowledgement | Relation-evidence acknowledgement |\n|---|---|---:|---:|---:|\n| OpenAI Codex CLI | tool-neutral | 4.8% | 4.8% | 0.0% |\n| OpenAI Codex CLI | tool-skill | 34.9% | 70.5% | 9.9% |\n| Anthropic Claude Code | tool-neutral | 18.5% | 2.2% | 0.0% |\n| Anthropic Claude Code | tool-skill | 66.7% | 60.0% | 4.3% |\n\nThese text diagnostics are conservative pattern matches and are secondary only. They must not be described as anatomical correctness, pedagogical quality, or expert judgment.\n\n## Interpretation\n\nA result is suitable for the paper only as an automated agent-behavior evaluation: whether the agent made an appropriate call, selected an accepted target/detail/outcome, and avoided predefined unsafe substitutions. Cross-provider differences are descriptive because the Codex CLI and Claude Code add different hidden instructions, orchestration loops and model portfolios. Independent blinded human anatomy ratings with reported rater qualifications are required before making claims about the factual quality, spatial usefulness or educational value of the prose.\n\n**todo** Complete two independent blinded human anatomy ratings, report rater qualifications, calculate agreement before anatomy-qualified adjudication, and add the human endpoint as a separate result.\n",
+      "content_sha256": "593026251473b1d9699b0e9fce451064efc9ee70fb680478a53441fb033c0aac",
+      "immutable": true,
+      "trust": "untrusted_data"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-paper-boundary",
+      "raw_record_id": "raw-paper-manuscript",
+      "byte_start": 2317,
+      "byte_end": 2894,
+      "quote": "Four commitments guided implementation. **Authorized substrate:** displayed anatomy comes from a curated catalogue, and unresolved targets are declined rather than replaced. **Bounded context:** the system starts with an isolated structure and adds related or regional context only when required [5]. **Interactive inspection:** rotation, zoom, isolation and system toggles support active spatial examination [10,11]. **Tool-governed explanation:** the agent renders before explaining, uses anatomical axes and distinguishes visible evidence from unsupported functional claims.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-agent-results",
+      "raw_record_id": "raw-paper-manuscript",
+      "byte_start": 6048,
+      "byte_end": 6311,
+      "quote": "Adding the skill increased complete-workflow pass rates from 60.7% to 81.3% for Codex and from 78.7% to 90.7% for Claude, corresponding to matched improvements of 20.6 percentage points (95% interval 14.3-27.0) and 12.0 points (5.6-19.4), respectively (Figure 2).",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-learning-limit",
+      "raw_record_id": "raw-paper-manuscript",
+      "byte_start": 7130,
+      "byte_end": 7448,
+      "quote": "Anatomed MCP converts a learner's question into bounded, inspectable 3D evidence while declining unresolved targets. Across the tested agent products, the spatial-explanation skill improved workflow reliability. These findings support technical feasibility for educational use but do not demonstrate learning benefits.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-note-direction",
+      "raw_record_id": "raw-paper-manuscript",
+      "byte_start": 7450,
+      "byte_end": 7663,
+      "quote": "Integration with anatomy-specific notes could combine conceptual, functional and clinical material with inspectable spatial evidence while preserving the query, explanation, render, provenance and evidence limits.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-rendered-verification",
+      "raw_record_id": "raw-paper-acceptance",
+      "byte_start": 44,
+      "byte_end": 177,
+      "quote": "The workflow was re-run from the original reviewer artifact through the rendered paper rather than relying only on source inspection.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-comment-closure",
+      "raw_record_id": "raw-paper-acceptance",
+      "byte_start": 470,
+      "byte_end": 763,
+      "quote": "- **Requirement traceability:** normalized text extracted from the rebuilt `Anatomed_MCP.pdf` was checked for concrete evidence for every row. All **13/13** mentor-comment checks passed, including the two-part checks for the designed skill, preliminary student panel and bounded future claims.",
+      "stance": "supports"
+    },
+    {
+      "id": "ev-paper-benchmark-boundary",
+      "raw_record_id": "raw-paper-benchmark",
+      "byte_start": 2895,
+      "byte_end": 3460,
+      "quote": "A result is suitable for the paper only as an automated agent-behavior evaluation: whether the agent made an appropriate call, selected an accepted target/detail/outcome, and avoided predefined unsafe substitutions. Cross-provider differences are descriptive because the Codex CLI and Claude Code add different hidden instructions, orchestration loops and model portfolios. Independent blinded human anatomy ratings with reported rater qualifications are required before making claims about the factual quality, spatial usefulness or educational value of the prose.",
+      "stance": "context"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap-paper-context-not-live-synced",
+      "description": "The project context is a pinned snapshot and must be refreshed explicitly if the Obsidian manuscript changes.",
+      "impact": "medium"
+    },
+    {
+      "id": "gap-paper-does-not-prove-learning",
+      "description": "The finished paper supports deployability and agent workflow findings, not learning outcomes or broad anatomical correctness.",
+      "impact": "high"
+    }
+  ],
+  "synthesis": {
+    "summary": "The finished paper defines Anatomed as a bounded, inspectable 3D evidence layer with resolution-or-decline behavior, tool-first spatial explanation, and explicit evidence limits. Its replicated agent benchmark supports improved workflow reliability with the frozen skill, while educational benefit remains unproven. The paper explicitly identifies anatomy-note integration as the next product direction.",
+    "claims": [
+      {
+        "id": "claim-paper-system-boundary",
+        "text": "Future anatomed-mcp work should preserve the paper-defined commitments: authorized catalogue substrate, resolution or decline, bounded context, interactive inspection, render-before-explain behavior, anatomical orientation, and separation of visible evidence from unsupported inference.",
+        "evidence_ids": [
+          "ev-paper-boundary"
+        ],
+        "status": "supported"
+      },
+      {
+        "id": "claim-paper-agent-evaluation",
+        "text": "The frozen spatial-explanation skill improved complete-workflow pass rates in the evaluated Codex and Claude product configurations, but this supports agent-workflow reliability rather than learning benefit or universal model quality.",
+        "evidence_ids": [
+          "ev-paper-agent-results",
+          "ev-paper-learning-limit",
+          "ev-paper-benchmark-boundary"
+        ],
+        "status": "qualified"
+      },
+      {
+        "id": "claim-paper-finished",
+        "text": "The current paper artifact is finished for the audited manuscript boundary: the rendered five-page PDF passed all 13 mentor-comment traceability checks, while later conference template conversion remains outside that closure.",
+        "evidence_ids": [
+          "ev-paper-rendered-verification",
+          "ev-paper-comment-closure"
+        ],
+        "status": "qualified"
+      },
+      {
+        "id": "claim-paper-note-integration-direction",
+        "text": "The paper explicitly identifies integration with anatomy-specific notes as a next direction, provided conceptual, functional, and clinical context remains connected to inspectable renders, provenance, and evidence limits.",
+        "evidence_ids": [
+          "ev-paper-note-direction"
+        ],
+        "status": "qualified"
+      }
+    ],
+    "overall_claim": "qualified"
+  },
+  "audit": {
+    "failures": [],
+    "audited_claim_ids": [
+      "claim-paper-agent-evaluation",
+      "claim-paper-finished",
+      "claim-paper-note-integration-direction",
+      "claim-paper-system-boundary"
+    ]
+  },
+  "receipt": {
+    "run_id": "run-e3720afcc7fe6f50fabe0079",
+    "pipeline_id": "pipeline-anatomed-paper-context-v1",
+    "pipeline_revision": "10863acf8cce846d4e823ea0b4b992e7b6856fde0c95d4dab27e4e0cd5b2f031",
+    "adapter_id": "adapter-local-paper-context-v1",
+    "started_at": "2026-09-02T03:40:00Z",
+    "finished_at": "2026-09-02T03:41:00Z",
+    "input_hash": "80bc8b76dcb7458070b688a3ab8915a23d4b815f439a8505ebc4854f64f84b92",
+    "artifact_hash": "0a7f2c4e83d74afe66dd9602bad5bf52dfea289ccae109691e9342a05a0af67e",
+    "capabilities": [
+      "local-file-acquisition",
+      "byte-exact-citations",
+      "source-hash-pinning",
+      "bounded-context-synthesis"
+    ],
+    "status": "qualified"
+  }
+}

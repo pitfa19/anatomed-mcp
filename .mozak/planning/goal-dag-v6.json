@@ -1,0 +1,106 @@
+{
+  "contract_version": 1,
+  "id": "plan-anatomed-region-cap",
+  "version": 6,
+  "input_set_id": "inputs-anatomed-paper-context-v1",
+  "goals": [
+    {
+      "id": "onboarding-control-state",
+      "version": 6,
+      "title": "Establish audited pre-execution control state",
+      "status": "completed",
+      "priority": 1,
+      "input_ids": [
+        "input-owner-selected-anatomed",
+        "input-code-cap-observation",
+        "input-total-cap-required"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 5
+    },
+    {
+      "id": "enforce-total-region-cap",
+      "version": 6,
+      "title": "Enforce a total 60-part region cap and add regression tests",
+      "status": "completed",
+      "priority": 10,
+      "input_ids": [
+        "input-code-cap-observation",
+        "input-total-cap-required",
+        "input-current-assembly-overflows",
+        "input-regression-needed"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 5
+    },
+    {
+      "id": "execute-region-cap-packet",
+      "version": 6,
+      "title": "Execute and independently evaluate the released region-cap packet",
+      "status": "completed",
+      "priority": 20,
+      "input_ids": [
+        "input-owner-selected-anatomed",
+        "input-regression-needed"
+      ],
+      "recovery_attempts": 0,
+      "supersedes_version": 5
+    },
+    {
+      "id": "onboard-anatomed-paper-context",
+      "version": 1,
+      "title": "Onboard the finished Anatomed paper as provenance-pinned project context",
+      "status": "ready",
+      "priority": 30,
+      "input_ids": [
+        "input-owner-requested-paper-context",
+        "input-paper-system-boundary",
+        "input-paper-agent-evaluation",
+        "input-paper-finished",
+        "input-paper-note-integration-direction"
+      ],
+      "recovery_attempts": 0
+    }
+  ],
+  "dependencies": [
+    {
+      "goal_id": "enforce-total-region-cap",
+      "depends_on_goal_id": "onboarding-control-state",
+      "provenance": {
+        "kind": "declared",
+        "input_ids": [
+          "input-owner-selected-anatomed",
+          "input-total-cap-required"
+        ]
+      }
+    },
+    {
+      "goal_id": "execute-region-cap-packet",
+      "depends_on_goal_id": "enforce-total-region-cap",
+      "provenance": {
+        "kind": "observed",
+        "observation_input_id": "input-code-cap-observation",
+        "detail": "Execution depends on implementing the observed region assembly fix and regression coverage."
+      }
+    },
+    {
+      "goal_id": "onboard-anatomed-paper-context",
+      "depends_on_goal_id": "execute-region-cap-packet",
+      "provenance": {
+        "kind": "declared",
+        "input_ids": [
+          "input-owner-requested-paper-context",
+          "input-paper-note-integration-direction"
+        ]
+      }
+    }
+  ],
+  "recovery": {
+    "max_attempts_per_goal": 2,
+    "allowed_failed_transition": "blocked"
+  },
+  "supersedes": {
+    "id": "plan-anatomed-region-cap",
+    "version": 5
+  }
+}

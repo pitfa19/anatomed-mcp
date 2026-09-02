@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "context-anatomed-paper-v1",
+  "status": "completed",
+  "created_at": "2026-09-02T03:43:00Z",
+  "source_repository": "/home/pitfa/Documents/obsidian",
+  "source_revision": "392662303f926206cfaf943ed97f84d7e61bcd7f",
+  "sources": [
+    {
+      "path": "rector_award/anatomed-paper/paper/manuscript.md",
+      "sha256": "e96d83b7ea2e5b612f96557b5e2d2b17615374f60a05ab0a84a28bbf40858ec5",
+      "role": "authoritative_manuscript"
+    },
+    {
+      "path": "rector_award/anatomed-paper/Anatomed_MCP.pdf",
+      "sha256": "82b3d9c7f765ba1b29ddce71ee045bcde9720944812d0d71768fee3511520155",
+      "role": "rendered_paper"
+    },
+    {
+      "path": "rector_award/anatomed-paper/workspace/mentor-comments-v2-resolution.md",
+      "sha256": "352977797a69cecca9cda68ee21b548ef192bdc70d2a6bc316def4bbbd6df33a",
+      "role": "acceptance_audit"
+    },
+    {
+      "path": "rector_award/anatomed-paper/benchmark/results/cross-provider-v02.md",
+      "sha256": "c038ca2629b4e5a7ad7119d7b4f5e8c34384835c689eb4f93d323e26e90d0c32",
+      "role": "benchmark_synthesis"
+    }
+  ],
+  "research_run": ".mozak/research/runs/run-anatomed-paper-context-20260902/run.json",
+  "context_note": ".mozak/context/anatomed-paper-v1.md",
+  "goal_id": "onboard-anatomed-paper-context",
+  "plan_version": 8,
+  "refresh_policy": "create_successor_version",
+  "context_note_sha256": "b544215c9f2c7457d671bb76faa12ffaa7605cf990e0a084c9abbfbcc227b92f",
+  "research_run_artifact_hash": "0a7f2c4e83d74afe66dd9602bad5bf52dfea289ccae109691e9342a05a0af67e"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "decision-accept-anatomed-paper-context-v2",
+  "decided_at": "2026-09-03T04:29:08Z",
+  "actor": "project owner",
+  "decision": "Accept the validated Anatomed paper context into project knowledge-state version 2.",
+  "boundaries": [
+    "The accepted paper context is bounded, project-local context and is not authoritative over the manuscript, benchmark records, source code, or later owner decisions.",
+    "Paper claims must not be treated as proof of code implementation, universal anatomical correctness, learning benefit, patient safety, or live synchronization.",
+    "No claim scope may exceed the validated research run, accepted input set, pinned context descriptor, and context note."
+  ],
+  "repository_revision_convention": "project.repository_revision is SHA-256 of the lowercase 40-character clean approved base Git HEAD, encoded with no trailing newline.",
+  "approved_base_git_head": "7658d38c5cb2c9ed8881a0dc8cf8643769dd0b70"
+}

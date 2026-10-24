@@ -221,7 +221,8 @@ function buildSummary(
   }
   if (payload.unmatched.length) lines.push(`Not found: ${payload.unmatched.join(', ')}.`);
   for (const issue of payload.issues ?? []) {
-    const prefix = issue.kind === 'ambiguous' ? 'Ambiguous query' : 'Unavailable in this atlas';
+    const prefix = issue.kind === 'ambiguous' ? 'Ambiguous query'
+      : issue.kind === 'unsupported' ? 'Unsupported whole-system query' : 'Unavailable in this atlas';
     lines.push(`${prefix}: ${issue.query}. ${issue.message}`);
   }
   if (truncated) lines.push(`Focus capped at ${MAX_REGION_PARTS} structures.`);

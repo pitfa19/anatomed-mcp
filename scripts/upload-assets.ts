@@ -1,91 +1,98 @@
-// Upload the GLB models + parts catalog to a public Supabase Storage bucket,
-// reusing the existing anatom3d project. Uses the Storage REST API directly
-// (native fetch) — no @supabase/supabase-js dependency.
-//
-// Run (service-role key must be in the environment, never committed):
-//   npx tsx --env-file=.env scripts/upload-assets.ts
-//
-// Env:
-//   SUPABASE_URL                e.g. https://uafyfwyyqzunabpuftue.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY   service-role key (server-side only)
-//   MODELS_BUCKET               optional, default "models"
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve, basename } from 'node:path';
+// Immutable release uploader for the existing Supabase models bucket.
+// Dry-run is the default. No bucket creation, overwrite, deletion, or secret logging.
+// npm run upload:assets -- --manifest ../anatomed-obsidian/src/assetPack.generated.json
+// Add --upload only after approving publication. --verify-only needs no credentials.
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const REPO = resolve(here, '..');
-const GLB_DIR = resolve(REPO, 'assets/glb');
-const CATALOG = resolve(REPO, 'assets/parts-catalog.json');
-const NEIGHBORS = resolve(REPO, 'assets/parts-neighbors.json');
+export const RELEASE = 'releases/2026-10-24-v2';
+const DEFAULT_URL = 'https://uafyfwyyqzunabpuftue.supabase.co';
+const SYSTEMS = ['insertions', 'joints', 'lymphoid', 'muscles', 'nerves', 'organs', 'regions', 'skeleton', 'vessels'];
+const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+type Entry = { path: string; bytes: number; sha256: string };
+export type Manifest = { release: string; publicObjects: Entry[] };
+export type UploadOptions = {
+  url: string; bucket: string; key?: string;
+  mode: 'dry-run' | 'upload' | 'verify-only'; fetcher?: typeof fetch;
+};
 
-const SUPABASE_URL = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').replace(/\/+$/, '');
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-const BUCKET = process.env.MODELS_BUCKET ?? 'models';
-
-if (!SUPABASE_URL || !KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment.');
-  process.exit(1);
+export function loadRelease(manifest: Manifest, assetDir: string): Map<string, Uint8Array> {
+  const expected = [...SYSTEMS.map((id) => `glb/${id}.glb`), 'parts-neighbors.json', 'parts-catalog.json'].sort();
+  if (manifest.release !== RELEASE || JSON.stringify(manifest.publicObjects.map((e) => e.path).sort()) !== JSON.stringify(expected)) {
+    throw new Error('Manifest must describe the complete immutable nine-system release');
+  }
+  const files = new Map<string, Uint8Array>();
+  for (const entry of manifest.publicObjects) {
+    const bytes = new Uint8Array(readFileSync(resolve(assetDir, entry.path)));
+    if (bytes.length !== entry.bytes || digest(bytes) !== entry.sha256) throw new Error(`Local asset differs from approved pack: ${entry.path}`);
+    files.set(entry.path, bytes);
+  }
+  return files;
 }
 
-const authHeaders = { Authorization: `Bearer ${KEY}`, apikey: KEY };
-
-async function ensureBucket(): Promise<void> {
-  const get = await fetch(`${SUPABASE_URL}/storage/v1/bucket/${BUCKET}`, { headers: authHeaders });
-  if (get.ok) {
-    console.log(`bucket "${BUCKET}" exists`);
+export async function uploadRelease(files: Map<string, Uint8Array>, options: UploadOptions): Promise<void> {
+  const fetcher = options.fetcher ?? fetch;
+  if (!/^https:\/\//.test(options.url) || !/^[a-zA-Z0-9_-]+$/.test(options.bucket)) throw new Error('Invalid storage destination');
+  const publicBase = `${options.url.replace(/\/+$/, '')}/storage/v1/object/public/${options.bucket}/${RELEASE}`;
+  const request = (url: string, init?: RequestInit) => fetcher(url, { ...init, signal: AbortSignal.timeout(120_000) });
+  const missing: string[] = [];
+  // Check every existing object before writing anything. Identical bytes are resumable.
+  for (const [path, local] of files) {
+    if (!/^(glb\/[a-z]+\.glb|parts-(catalog|neighbors)\.json)$/.test(path)) throw new Error('Unsafe object path');
+    const response = await request(`${publicBase}/${path}`, { cache: 'no-store' });
+    if (response.ok) {
+      if (digest(new Uint8Array(await response.arrayBuffer())) !== digest(local)) throw new Error(`Immutable object conflict: ${path}. Use a new release prefix.`);
+    } else {
+      const detail = await response.json().catch(() => ({})) as { statusCode?: string | number };
+      if (response.status !== 404 && !(response.status === 400 && Number(detail.statusCode) === 404)) {
+        throw new Error(`Cannot establish object absence: ${path} (${response.status})`);
+      }
+      missing.push(path);
+    }
+  }
+  if (options.mode === 'verify-only' && missing.length) throw new Error(`Public release incomplete: ${missing.join(', ')}`);
+  if (options.mode === 'dry-run') {
+    console.log(JSON.stringify({ release: RELEASE, existing: files.size - missing.length, toUpload: missing }));
     return;
   }
-  const create = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
-    method: 'POST',
-    headers: { ...authHeaders, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
+  if (options.mode === 'upload') {
+    if (!options.key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for --upload');
+    for (const path of missing) {
+      const response = await request(`${options.url.replace(/\/+$/, '')}/storage/v1/object/${options.bucket}/${RELEASE}/${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${options.key}`, apikey: options.key,
+          'Content-Type': path.endsWith('.glb') ? 'model/gltf-binary' : 'application/json',
+          'x-upsert': 'false', 'cache-control': '31536000',
+        },
+        body: files.get(path) as Uint8Array<ArrayBuffer>,
+      });
+      // A concurrent creator must fail rather than be overwritten.
+      if (!response.ok) throw new Error(`Create-only upload failed: ${path} (${response.status})`);
+    }
+    // Credentials are deliberately omitted from public-read verification.
+    await uploadRelease(files, { ...options, mode: 'verify-only', key: undefined });
+  }
+  console.log(JSON.stringify({ release: RELEASE, publicObjectsVerified: files.size }));
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const manifestIndex = args.indexOf('--manifest');
+  if (manifestIndex < 0 || !args[manifestIndex + 1] || (args.includes('--upload') && args.includes('--verify-only'))) {
+    throw new Error('Usage: upload-assets.ts --manifest <approved metadata.json> [--upload | --verify-only]');
+  }
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const manifest = JSON.parse(readFileSync(resolve(args[manifestIndex + 1]), 'utf8')) as Manifest;
+  const files = loadRelease(manifest, resolve(root, 'assets'));
+  await uploadRelease(files, {
+    url: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? DEFAULT_URL,
+    bucket: process.env.MODELS_BUCKET ?? 'models', key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    mode: args.includes('--upload') ? 'upload' : args.includes('--verify-only') ? 'verify-only' : 'dry-run',
   });
-  if (!create.ok) {
-    const t = await create.text();
-    throw new Error(`bucket create failed: ${create.status} ${t}`);
-  }
-  console.log(`bucket "${BUCKET}" created (public)`);
 }
-
-async function upload(path: string, body: Buffer, contentType: string): Promise<void> {
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
-    method: 'POST',
-    headers: { ...authHeaders, 'Content-Type': contentType, 'x-upsert': 'true', 'cache-control': '86400' },
-    body: new Uint8Array(body),
-  });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`upload ${path} failed: ${res.status} ${t}`);
-  }
-  console.log(`  ✓ ${path} (${(body.length / 1e6).toFixed(1)} MB)`);
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error) => { console.error(error instanceof Error ? error.message : 'Upload failed'); process.exitCode = 1; });
 }
-
-async function main(): Promise<void> {
-  await ensureBucket();
-
-  console.log('uploading catalog…');
-  await upload('parts-catalog.json', readFileSync(CATALOG), 'application/json');
-
-  // Neighbours dataset — served to browser hosts that fetch context at runtime
-  // (the anatomed-obsidian plugin loads ${base}/parts-neighbors.json for
-  // related/regional detail). The Node MCP server reads it from disk instead.
-  console.log('uploading neighbours…');
-  await upload('parts-neighbors.json', readFileSync(NEIGHBORS), 'application/json');
-
-  const glbs = readdirSync(GLB_DIR).filter((f) => f.endsWith('.glb'));
-  console.log(`uploading ${glbs.length} GLBs…`);
-  for (const f of glbs) {
-    await upload(`glb/${basename(f)}`, readFileSync(resolve(GLB_DIR, f)), 'model/gltf-binary');
-  }
-
-  const base = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}`;
-  console.log('\nDone. Public asset base:');
-  console.log(`  ASSET_BASE_URL=${base}`);
-  console.log(`  (catalog: ${base}/parts-catalog.json, neighbours: ${base}/parts-neighbors.json, glbs: ${base}/glb/<system>.glb)`);
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});

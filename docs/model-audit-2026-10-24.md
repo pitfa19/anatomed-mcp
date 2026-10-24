@@ -197,6 +197,24 @@ Within the 358 no-close-candidate objects are the 160 lymphoid objects, 119 musc
 - Raw inventory `activeScene`/`unrenderableExportedNodes` fields rely on loader association metadata, which can be absent for cloned objects. They are not authoritative render verdicts. Exact target-node geometry and pixel evidence take precedence, and every raw node is separately linked to a render record in `exported-node-accounting.json`.
 - No exhaustive human visual inspection of every screenshot or medical surface-equivalence certification is claimed.
 
+## Public-interface acceptance observations
+
+The acceptance follow-up exercised the **unmodified deployed** `show_anatomy_region` tool, its HTML resource, and `/widget-preview` pages. It did not substitute the local audit viewer or inject a scene. Browser input clicked the real controls and dragged the real canvas.
+
+| Requirement or prediction | Actual public-interface observation | Outcome |
+|---|---|---|
+| Service and viewer integration work | Protocol initialized, tool discovered, viewer HTML resource retrieved, all seven query payloads matched expected IDs/unmatched results | Verified |
+| A known present organ renders and user controls work | Liver: 120,182 model pixels, then 0 after clicking Hide all, then 120,182 after Show all | Verified |
+| Stale cerebellum identifier causes an actual blank view | Tool returned `Cerebellum.r`, deployed loaded viewer had 0 model pixels | Defect reproduced |
+| Default blank fascia is geometry visibility, not a missing model | Popliteal fascia: 0 initial pixels, then 62,542 after a real pointer drag on the canvas | Defect and recovery reproduced |
+| Bone, vessel and nerve can load together | Femur, Femoral artery and Femoral nerve returned together and rendered with 8,209 model pixels | Verified |
+| Broad system queries do not expand | `organs`, `nervous system` and `vascular system` each returned zero parts | Behavior reproduced |
+| Evidence is usable as a review deliverable | Opened the actual local HTML report, searched Cerebellum, checked all four expected results and their links, switched to the full 7,184-object source inventory | Verified |
+
+Evidence: `public-acceptance/acceptance.json` and its screenshots, plus `report-validation/checks.json`. These observations close the audit's finding-to-real-behavior feedback loop. **They do not mean the product was repaired or became better:** production was deliberately unchanged. The improvement delivered is a complete, verified diagnosis and reviewable per-object evidence rather than an untested missing-model hypothesis.
+
+Native Obsidian and Claude desktop host acceptance is not claimed. Those apps were not opened because the required desktop-app approval was not granted. The public service/viewer boundary was exercised directly, while the exhaustive cross-viewer audit remains instrumented evidence.
+
 ## Recommended repair sequence, not implemented
 
 1. **Reconcile catalog and current nerve/vessel exports together.** Generate catalog IDs from the same export manifest, preserve legacy names through explicit aliases, and add reviewed composites for structures like the cerebellum.

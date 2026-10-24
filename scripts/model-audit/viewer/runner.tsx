@@ -9,6 +9,7 @@ import { assembleRegion, buildRegion } from '@audit/region'
 import { resolveQueryToParts } from '@audit/resolver'
 import { observed } from './probe'
 import { pixelEvidence, structuralFailures } from './evidence.mjs'
+import { isMountedSystemReady } from './readiness.mjs'
 
 declare const AUDIT_REPO: string
 const repo = AUDIT_REPO
@@ -201,7 +202,10 @@ async function renderPart(part: any, options: any, run: string, systemKey: strin
   record.payload = payload
   try {
     flushSync(() => root.render(<Boundary key={systemKey}><RegionViewer payload={payload} /></Boundary>))
-    await until(() => !!boundaryFailure || !!loadErrors.get(url) || (decoded.has(url) && !!observed.state && (samePartition || observed.state.scene.children.map((o: any) => o.uuid).join('|') !== previousChildren)), options.timeoutMs, 'actual GLTFLoader and new viewer clone')
+    await until(() => !!boundaryFailure || !!loadErrors.get(url) || isMountedSystemReady({
+      decoded: decoded.has(url), scene: observed.state?.scene,
+      loading: !!document.querySelector('#root .am-loading'), previousChildren, samePartition,
+    }), options.timeoutMs, 'actual system meshes mounted, loading overlay cleared, and new viewer clone')
     if (boundaryFailure) throw new Error(boundaryFailure)
     if (loadErrors.has(url)) throw new Error(loadErrors.get(url))
     const firstFrame = observed.frames

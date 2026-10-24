@@ -33,6 +33,8 @@ const cases = [
   {key:'popliteal-fascia',parts:['popliteal fascia'],expected:['Popliteal fascia.r'],rotate:true},
   {key:'mixed',parts:['Femur','Femoral artery','Femoral nerve'],expected:['Femur.r','Femoral artery.r','Femoral nerve.r']},
   {key:'lymphoid',parts:[lymph.id],expected:[lymph.id]},
+  {key:'restored-nasopharynx',parts:['Nasopharynx'],expected:['Nasopharynx']},
+  {key:'restored-bursa',parts:['Anserine bursa.l'],expected:['Anserine bursa.l']},
 ];
 try {
   await client.connect(new StreamableHTTPClientTransport(new URL(base+'/mcp')));

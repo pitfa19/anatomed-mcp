@@ -3,9 +3,10 @@ import {launchBrowser} from './run-browser.mjs';
 const BASE='/Users/fabijanpitlovic/.jcode/scratch/anatomed-audit-20261024-1846';
 const run=process.argv[2]||'full-v1';
 const concurrency=Number(process.argv[3]||4);
-const systems=['organs','nerves','vessels','skeleton','muscles','joints','insertions','regions'];
-const jobs=systems.flatMap(system=>['obsidian','mcp'].map(repo=>({repo,system})));
-const results=[];const active=new Map();let next=0;
+const systems=process.argv[4]?.split(',')||['organs','nerves','vessels','skeleton','muscles','joints','insertions','regions'];
+const previous=await fs.readFile(BASE+'/orchestration/'+run+'/results.json','utf8').then(JSON.parse).catch(()=>[]);
+const jobs=systems.flatMap(system=>['obsidian','mcp'].map(repo=>({repo,system}))).filter(job=>!previous.some(r=>r.repo===job.repo&&r.system===job.system&&r.complete));
+const results=previous.filter(r=>!jobs.some(job=>job.repo===r.repo&&job.system===r.system));const active=new Map();let next=0;
 await fs.mkdir(BASE+'/orchestration/'+run,{recursive:true});
 const heartbeat=setInterval(async()=>{for(const [lane,p]of active){try{const status=await p.evaluate('window.audit?.status()',5000);console.log('JCODE_PROGRESS '+JSON.stringify({message:`lane ${lane}: ${status?.repo} ${status?.system} ${status?.kind} ${status?.id}`,current:status?.completed,total:status?.total,unit:'objects'}))}catch(e){console.log('PROGRESS_NOTE '+String(e))}}},60000);
 async function worker(lane){

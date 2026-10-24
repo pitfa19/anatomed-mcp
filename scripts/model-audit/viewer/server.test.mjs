@@ -2,12 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, mkdtemp, rm } from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 
 // This is server/bundle integration, not a browser render test.
 test('both actual viewer bundles and artifact endpoints work without modifying production files', { timeout: 30000 }, async () => {
-  const output = `/Users/fabijanpitlovic/.jcode/scratch/anatomed-audit-20261024-1846/render/self-check-${Date.now()}`
+  const output = await mkdtemp(path.join(os.tmpdir(), 'anatomed-audit-self-check-'))
   const child = spawn(process.execPath, [fileURLToPath(new URL('./server.mjs', import.meta.url)), '--port', '0', '--output', output, '--mcp-assets', '/Users/fabijanpitlovic/Documents/anatomed-obsidian/assets'], { stdio: ['ignore', 'pipe', 'pipe'] })
   let logs = ''
   let errors = ''
@@ -31,7 +32,8 @@ test('both actual viewer bundles and artifact endpoints work without modifying p
       assert.ok(bundle.includes('function AuditProbe('))
       const manifest = await (await fetch(`${address}/manifest/${repo}`)).json()
       assert.ok(manifest.sources[`/Users/fabijanpitlovic/Documents/anatomed-${repo}/widget/RegionViewer.tsx`])
-      assert.equal(manifest.assets.length, 8)
+      const catalogSystems = JSON.parse(await readFile(`/Users/fabijanpitlovic/Documents/anatomed-${repo}/assets/parts-catalog.json`, 'utf8')).systems.length
+      assert.equal(manifest.assets.length, catalogSystems)
       assert.ok(manifest.assets.every(a => a.sha256))
       const catalog = await (await fetch(`${address}/assets/${repo}/parts-catalog.json`)).json()
       assert.equal(catalog.parts.length, manifest.catalogParts)
@@ -61,9 +63,10 @@ test('both actual viewer bundles and artifact endpoints work without modifying p
     assert.equal(code, 2, coverageErrors)
     const coverage = JSON.parse(coverageText)
     assert.equal(coverage.coverageComplete, false)
-    assert.equal(coverage.missingInventories.length, 8)
+    assert.equal(coverage.missingInventories.length, JSON.parse(await readFile('/Users/fabijanpitlovic/Documents/anatomed-obsidian/assets/parts-catalog.json', 'utf8')).systems.length)
     assert.equal(coverage.missing.length, coverage.counts.catalog.expected)
   } finally {
     child.kill('SIGTERM')
+    await rm(output, { recursive: true, force: true })
   }
 })

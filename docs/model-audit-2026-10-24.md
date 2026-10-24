@@ -10,23 +10,20 @@ No production source, catalog, model, release, deployment, or hosted storage was
 
 ## Review the evidence
 
-Evidence directory on this machine:
+Evidence on this machine (renders and screenshots were cleaned up after the 0.1.8 repair; the full results JSON and repair trace are kept):
 
 ```text
-/Users/fabijanpitlovic/.jcode/scratch/anatomed-audit-20261024-1846
+/Users/fabijanpitlovic/.jcode/scratch/anatomed-evidence-20261024
 ```
 
-Start with `REPORT.html`, a searchable report with per-object results and three-view screenshots, plus:
+Kept files:
 
-- `original-source-inventory.csv`: every original source object, including excluded helpers.
-- `catalog-results.csv`: every catalog row in both viewers.
-- `exported-node-results.csv`: additional exported scene nodes, including helpers not intended as selectable anatomy.
-- `exported-node-accounting.json`: every raw exported node linked to its render record, including nodes whose loader association metadata is absent.
-- `audit-results.json`: combined results and provenance.
-- `source/stage-summary.json`: exact source-collection, intermediate-file and catalog reconciliation.
-- `geometry/source-spatial-reconciliation.json`: explicitly provisional name-and-bounds candidates.
-- `render/query-audit-{obsidian,mcp}.json`: display-name and side-query access checks.
-- `inputs/manifest.json`: source, local, release and hosted asset checksums.
+- `pre-fix-audit-results.json`: the original combined audit results and provenance (every catalog row and exported node in both viewers, source rows, geometry and spatial summaries).
+- `REQUIREMENTS-TRACE.md`: each repair requirement mapped to the check and observed result.
+- `before-after.json`: every pre-fix catalog record joined to its post-repair outcome.
+- `removed-ids-production.json`, `production-acceptance.json`, `native-acceptance.json`: live production and native Obsidian checks after the 0.1.8 repair.
+
+The HTML report, CSV exports, screenshots and intermediate files were deleted. Rerun `scripts/model-audit/run-full.mjs` (set `ANATOMED_AUDIT_ROOT`) to regenerate them.
 
 ## Original source and conversion history
 

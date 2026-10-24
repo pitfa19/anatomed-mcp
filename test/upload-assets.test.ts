@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { uploadRelease, RELEASE, type UploadOptions } from '../scripts/upload-assets.js';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadRelease, uploadRelease, RELEASE, type UploadOptions } from '../scripts/upload-assets.js';
 
 const files = new Map([['glb/skeleton.glb', new Uint8Array([1, 2, 3])], ['parts-catalog.json', new Uint8Array([4, 5])]]);
 function fixture(existing: Map<string, Uint8Array> = new Map(), failStatus?: number) {
@@ -61,4 +65,35 @@ test('permission and server errors are not treated as object absence', async () 
     await assert.rejects(uploadRelease(files, { ...f.options, fetcher: async () => new Response('{}', { status }) }), /Cannot establish object absence/);
     assert.equal(f.calls.length, 0);
   }
+});
+
+test('public readback mismatch prevents successful completion', async () => {
+  const f = fixture();
+  const original = f.options.fetcher!;
+  f.options.fetcher = async (input, init) => {
+    const response = await original(input, init);
+    if (init?.method === 'POST') f.existing.set(String(input).split(`/${RELEASE}/`)[1], new Uint8Array([0]));
+    return response;
+  };
+  await assert.rejects(uploadRelease(files, f.options), /Immutable object conflict/);
+});
+
+test('approved metadata validates all local bytes before network access', () => {
+  const dir = mkdtempSync(join(process.env.JCODE_SCRATCH_DIR || tmpdir(), 'anatomed-upload-fixture-'));
+  try {
+    mkdirSync(join(dir, 'glb'));
+    const paths = ['insertions', 'joints', 'lymphoid', 'muscles', 'nerves', 'organs', 'regions', 'skeleton', 'vessels'].map((id) => `glb/${id}.glb`);
+    paths.push('parts-catalog.json', 'parts-neighbors.json');
+    const publicObjects = paths.map((path) => {
+      const bytes = Buffer.from(`fixture:${path}`);
+      writeFileSync(join(dir, path), bytes);
+      return { path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+    });
+    const manifest = { release: RELEASE, publicObjects };
+    assert.equal(loadRelease(manifest, dir).size, 11);
+    assert.throws(() => loadRelease({ ...manifest, release: 'models' }, dir), /complete immutable/);
+    assert.throws(() => loadRelease({ ...manifest, publicObjects: publicObjects.slice(1) }, dir), /complete immutable/);
+    writeFileSync(join(dir, 'glb/skeleton.glb'), 'changed');
+    assert.throws(() => loadRelease(manifest, dir), /differs from approved pack/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

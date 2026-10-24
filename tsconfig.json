@@ -12,5 +12,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "widget", "scripts", "api"]
+  "include": ["src", "widget", "scripts", "api"],
+  "exclude": ["scripts/model-audit/viewer"]
 }

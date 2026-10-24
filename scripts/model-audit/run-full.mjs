@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import {launchBrowser} from './run-browser.mjs';
-const BASE='/Users/fabijanpitlovic/.jcode/scratch/anatomed-audit-20261024-1846';
+const BASE=process.env.ANATOMED_AUDIT_ROOT||'/Users/fabijanpitlovic/.jcode/scratch/anatomed-audit-20261024-1846';
+const serverBase=process.env.ANATOMED_AUDIT_SERVER||'http://127.0.0.1:8879';
 const run=process.argv[2]||'full-v1';
 const concurrency=Number(process.argv[3]||4);
 const systems=process.argv[4]?.split(',')||['organs','nerves','vessels','skeleton','muscles','joints','insertions','regions'];
@@ -13,7 +14,7 @@ async function worker(lane){
  const browser=await launchBrowser(BASE+'/orchestration/'+run+'/lane-'+lane);
  browser.listeners.add(m=>{if(m.method==='Runtime.exceptionThrown')console.log('PAGE_EXCEPTION '+JSON.stringify({lane,detail:m.params.exceptionDetails}));});
  try{while(next<jobs.length){const job=jobs[next++];const started=Date.now();console.log('START '+JSON.stringify({lane,...job}));let page;
-  try{page=await browser.page(`http://127.0.0.1:8879/${job.repo}/`);active.set(lane,page);await page.evaluate(`(async()=>{const start=Date.now();while(!window.audit){if(Date.now()-start>30000)throw Error('audit API missing');await new Promise(r=>setTimeout(r,50))}return window.audit.manifest().repo})()`);const summary=await page.evaluate(`window.audit.run(${JSON.stringify({runId:run,systems:[job.system],viewpoints:3,settleFrames:12})})`,14400000);const result={...job,lane,durationSeconds:(Date.now()-started)/1000,complete:summary.systems?.[0]?.complete,counts:summary.systems?.[0]?.counts,records:summary.systems?.[0]?.records?.length};results.push(result);console.log('JCODE_CHECKPOINT '+JSON.stringify({message:`Completed ${job.repo} ${job.system}`,result}));}
+  try{page=await browser.page(`${serverBase}/${job.repo}/`);active.set(lane,page);await page.evaluate(`(async()=>{const start=Date.now();while(!window.audit){if(Date.now()-start>30000)throw Error('audit API missing');await new Promise(r=>setTimeout(r,50))}return window.audit.manifest().repo})()`);const summary=await page.evaluate(`window.audit.run(${JSON.stringify({runId:run,systems:[job.system],viewpoints:3,settleFrames:12})})`,14400000);const result={...job,lane,durationSeconds:(Date.now()-started)/1000,complete:summary.systems?.[0]?.complete,counts:summary.systems?.[0]?.counts,records:summary.systems?.[0]?.records?.length};results.push(result);console.log('JCODE_CHECKPOINT '+JSON.stringify({message:`Completed ${job.repo} ${job.system}`,result}));}
   catch(e){const failure={...job,lane,error:String(e)};results.push(failure);console.log('JOB_ERROR '+JSON.stringify(failure));}
   finally{active.delete(lane);if(page)await page.close().catch(()=>{});await fs.writeFile(BASE+'/orchestration/'+run+'/results.json',JSON.stringify(results,null,2))}
  }}finally{await browser.close()}

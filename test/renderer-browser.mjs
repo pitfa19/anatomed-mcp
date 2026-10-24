@@ -23,19 +23,19 @@ assert.equal(selected.filter(r => r.blank).length, 15, 'baseline thin-surface po
 const browser = await launchBrowser(output);
 const results = [];
 try {
-  for (const repo of ['mcp', 'obsidian']) {
+  await Promise.all(['mcp', 'obsidian'].map(async repo => {
     for (const [label, width, height] of [['landscape', 800, 400], ['portrait', 360, 720]]) {
       const page = await browser.page(`${origin}/${repo}/`);
       await page.evaluate(`new Promise((resolve,reject)=>{const start=Date.now();const t=setInterval(()=>{if(window.audit){clearInterval(t);resolve(true)}else if(Date.now()-start>60000){clearInterval(t);reject(Error('audit API timeout'))}},50)})`);
       await page.evaluate(`(()=>{const style=document.createElement('style');style.textContent='#root,.am-viewport,.am-stage{width:${width}px!important;height:${height}px!important}';document.head.append(style)})()`);
       const result = await page.evaluate(`window.audit.run(${JSON.stringify({ runId: label, systems: [...new Set(selected.map(r => r.system))], ids: selected.map(r => r.id), includeSynthetic: false, viewpoints: 3 })})`, 3600000);
       results.push({ repo, label, result });
-      await fs.writeFile(path.join(output, 'browser-results.json'), JSON.stringify(results, null, 2));
       const records = result.systems.flatMap(s => s.records);
       assert.equal(records.length, selected.length, 'every selected baseline case attempted');
       assert.deepEqual(records.filter(r => r.status !== 'pass-structural'), [], `${repo} ${label} structural render regressions`);
       console.log('JCODE_PROGRESS '+JSON.stringify({current:results.length,total:4,message:`${repo} ${label} completed`}));
       await page.close();
     }
-  }
+  }));
+  await fs.writeFile(path.join(output, 'browser-results.json'), JSON.stringify(results, null, 2));
 } finally { await browser.close(); }

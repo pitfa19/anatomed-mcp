@@ -17,6 +17,11 @@ const selected = JSON.parse(await fs.readFile(path.join(output, 'selected-baseli
 assert.equal(selected.length, 524);
 const summaries = [];
 for (const repo of ['mcp', 'obsidian']) {
+  const baselineManifest = JSON.parse(await fs.readFile(path.join(baseline, `render/${repo}-manifest.json`), 'utf8'));
+  const manifest = JSON.parse(await fs.readFile(path.join(output, `${repo}-manifest.json`), 'utf8'));
+  for (const asset of baselineManifest.assets) {
+    assert.equal(manifest.assets.find(a => a.system === asset.system)?.sha256, asset.sha256, `${repo}/${asset.system} GLB checksum unchanged`);
+  }
   for (const [orientation, width, height] of [['landscape', 800, 400], ['portrait', 360, 720]]) {
     const rows = await records(path.join(output, repo, orientation));
     assert.equal(rows.length, selected.length, `${repo}/${orientation} case count`);

@@ -56,6 +56,23 @@ Empty original evaluation does not prove empty source geometry. Empty enabled ev
 
 Other helpers with names such as `*-profile` are not guessed into exclusions. They remain explicit source rows and may appear in the missing-name list. That list is an investigation queue, not a claim that every row should be shipped.
 
+## Primary-collection / FBX stage extension
+
+FBX is the intermediate 3D scene interchange format. After the imported FBX inventory is available, run:
+
+```bash
+python3 -B scripts/model-audit/source/stage_summary.py \
+  --source-dir /absolute/.jcode/scratch/audit/source \
+  --fbx-inventory /absolute/.jcode/scratch/audit/inputs/fbx/inventory.json \
+  --catalog /absolute/anatomed-obsidian/assets/parts-catalog.json
+```
+
+`stage-summary.json` is an additive version-1 artifact. It does not replace or narrow the whole-original inventory. Its `primary_collections` require numbered collections **directly under the original scene root**, rather than secondary memberships under `Bonus collection`. Each primary row records all recursive object counts, helper exclusions, source candidates, vertex-nonempty versus polygon-surface-nonempty counts, exact names and graph evidence in the intended GLB and across all eight, and unresolved-name lists. Lymphoid organs remain a ninth source group without an invented production-system assignment.
+
+`fbx_to_catalog` compares exact per-system name **multisets** selected by the FBX inventory's recorded `originalCatalogRule` with catalog IDs. It records both name lists and differences, preserving duplicates and all suffixes. Equality establishes the old catalog's selection correspondence to this imported intermediate, **not anatomical completeness of the source**. All nine FBX file summaries and checksums remain present, with the ninth reference-lines file explicitly outside the eight-system catalog comparison. All input JSON hashes are pinned.
+
+The primary source stage independently confirms 588 nervous-system candidates with 588 exact nodes, of which 582 have source polygon surfaces and direct mesh nodes; 676 cardiovascular candidates all have surfaces and exact geometry. Lymphoid has 163 candidates, with exact cross-system geometry for `Spleen`, `Left lobe of thymus`, and `Right lobe of thymus`, leaving 160 unresolved exact geometry names. Visceral systems have 25 source-name differences after direct or descendant geometry evidence. These 25, and the source-to-FBX difference lists, remain **unresolved rename/split/coverage candidates**, never automatically labeled anatomical loss.
+
 ## Tests
 
 Standard-library tests cover valid and malformed GLB JSON chunks, exact versus normalized duplicate candidates, suffix preservation, unknown collection routing, unnamed descendant meshes, cyclic/invalid node graphs, dependency-graph fallback rejection, and explicit conversion exceptions. The evaluation-function tests use mock objects and do not substitute for the real-source run. Real-source validation is separate from these synthetic tests and includes both source checksums, all 7,184 source records (for the pinned run), and all eight actual GLB inputs.

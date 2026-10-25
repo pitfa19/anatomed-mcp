@@ -35,6 +35,13 @@ const cases = [
   {key:'lymphoid',parts:[lymph.id],expected:[lymph.id]},
   {key:'restored-nasopharynx',parts:['Nasopharynx'],expected:['Nasopharynx']},
   {key:'restored-bursa',parts:['Anserine bursa.l'],expected:['Anserine bursa.l']},
+  {key:'restored-pleura',parts:['Pleura'],expected:['Pleura']},
+  {key:'restored-gastric-mucosa',parts:['Mucosa of stomach'],expected:['Mucosa of stomach']},
+  {key:'restored-scalp-hair',parts:['Hairs of head'],expected:['Hairs of head']},
+  {key:'restored-ethmoid-cells',parts:['Anterior cells of ethmoid bone.l'],expected:['Anterior cells of ethmoid bone.l']},
+  {key:'restored-abductor-hallucis-attachment',parts:['Abductor hallucis on medial process of calcaneal tuberosity.l'],expected:['Abductor hallucis on medial process of calcaneal tuberosity.l']},
+  {key:'restored-trochanteric-insertion',parts:['Trochanteric insertion.r'],expected:['Trochanteric insertion.r']},
+  {key:'eyelashes-left',parts:['left eyelashes'],expected:['Eyelashes.l']},
 ];
 try {
   await client.connect(new StreamableHTTPClientTransport(new URL(base+'/mcp')));
@@ -56,7 +63,7 @@ try {
     }
     if(c.unsupported) assert.ok(payload?.issues?.length || /specific|bounded|individual|whole.system|not supported/i.test(JSON.stringify(call.content)),c.key+' explains scope');
     else assert.equal(!!call.isError,false,c.key);
-    assert.ok(payload.assetBase.includes('/releases/2026-10-24-v2'), 'Payload selects immutable repaired asset release');
+    assert.ok(payload.assetBase.includes('/releases/2026-10-24-v3'), 'Payload selects immutable repaired asset release');
     result.protocol.push({case:c.key,queries:c.parts,returnedIds:ids,issues:payload.issues,unmatched:payload.unmatched,assetBase:payload.assetBase,isError:!!call.isError});
   }
   const assetBase=result.protocol.find(r=>r.returnedIds.length)?.assetBase;

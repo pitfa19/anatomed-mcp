@@ -27,7 +27,7 @@ const MIME = 'text/html;profile=mcp-app';
 // (the canonical asset home — works locally and on Vercel with no env setup).
 // Override with ASSET_BASE_URL to serve GLBs from this server instead.
 const DEFAULT_ASSET_BASE_URL =
-  'https://uafyfwyyqzunabpuftue.supabase.co/storage/v1/object/public/models/releases/2026-10-24-v2';
+  'https://uafyfwyyqzunabpuftue.supabase.co/storage/v1/object/public/models/releases/2026-10-24-v3';
 const ASSET_BASE_URL = (process.env.ASSET_BASE_URL ?? DEFAULT_ASSET_BASE_URL).replace(/\/+$/, '');
 
 function originOf(url: string): string {

@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
-export const RELEASE = 'releases/2026-10-24-v2';
+export const RELEASE = 'releases/2026-10-24-v3';
 const DEFAULT_URL = 'https://uafyfwyyqzunabpuftue.supabase.co';
 const SYSTEMS = ['insertions', 'joints', 'lymphoid', 'muscles', 'nerves', 'organs', 'regions', 'skeleton', 'vessels'];
 const digest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
